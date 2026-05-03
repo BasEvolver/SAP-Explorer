@@ -1,0 +1,94 @@
+# SAP Explorer - Implementation & Architecture Plan
+
+This document serves as the master blueprint for the **SAP Explorer** project. You can paste this document into the new `SAP Explorer` folder and provide it to the AI in your next session to immediately begin execution.
+
+## 1. Project Goal & Scope
+SAP Explorer is a purpose-built companion application to ARIA-CRM. 
+**Primary Purpose:** To establish a communication bridge with SAP systems, allowing users to extract, map, and explore SAP BAPIs, Tables, and Logical Databases. This extracted intelligence will subsequently be utilized by ARIA-CRM.
+**Aesthetics:** The application must exactly match the premium, dynamic, glassmorphic UI of ARIA-CRM, ensuring a seamless user experience across the Compass suite.
+
+## 2. Technical Stack
+- **Core Framework**: Next.js (App Router)
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS v4
+- **UI & Animations**: Framer Motion, Lucide React
+- **Backend & Auth (If required standalone)**: Prisma, Clerk
+
+---
+
+## 3. Session 1: Workspace Scaffolding
+*In your new session, instruct the AI to execute these initialization steps.*
+
+### Initialize Next.js
+Run the following in the `C:\Users\baska\OneDrive\Documents\Compass\SAP Explorer` terminal:
+```powershell
+npx create-next-app@latest . --typescript --tailwind --eslint --app --src-dir --import-alias "@/*" --use-npm
+```
+
+### Install Core Dependencies
+```powershell
+npm install framer-motion lucide-react clsx tailwind-merge
+npm install @clerk/nextjs @prisma/client
+npm install prisma --save-dev
+```
+
+---
+
+## 4. Session 2: Porting ARIA-CRM Aesthetics
+*Instruct the AI to apply the shared design tokens.*
+
+### Global CSS Tokens (`src/app/globals.css`)
+Replace the default Next.js CSS with the ARIA-CRM foundational styles:
+```css
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --background: #f8fafc;
+  --foreground: #0f172a;
+}
+
+.dark {
+  --background: #0f172a;
+  --foreground: #f8fafc;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: 'Inter', sans-serif;
+}
+
+@utility glass-panel {
+  @apply bg-white/70 dark:bg-slate-900/40 backdrop-blur-xl border border-slate-200 dark:border-slate-800/60 shadow-xl;
+}
+```
+
+---
+
+## 5. Session 3: Domain Architecture (SAP Extraction)
+*Once the workspace is scaffolded, we will systematically build out the following architecture.*
+
+### Core Directories to Generate
+1. **SAP Client Integration (`src/lib/sap/`)**
+   - We will need to evaluate the SAP connection method (e.g., `node-rfc` for direct RFC calls, or standard `fetch` wrappers for SAP Gateway/OData APIs).
+   - Create singleton connection managers for authenticating with the SAP instance.
+
+2. **API Routes (`src/app/api/`)**
+   - `/api/sap/bapi`: Endpoints to list available BAPIs and execute them with JSON payloads.
+   - `/api/sap/tables`: Endpoints to query data dictionaries (DD02L, DD03L) and extract table contents.
+   - `/api/sap/logical-dbs`: Endpoints to explore LDB structures.
+
+3. **Explorer UI Components (`src/components/explorer/`)**
+   - **`SAPSchemaTree.tsx`**: A dynamic, recursive tree component to visualize BAPI/Table hierarchies.
+   - **`DataPreviewGrid.tsx`**: A high-performance data table to preview extracted SAP records.
+   - **`ExtractionPipeline.tsx`**: A UI to manage the queue of data being pushed/mapped over to ARIA-CRM.
+
+---
+
+## Next Steps for the User
+1. Save this document as `SAP_EXPLORER_PLAN.md` inside your new `SAP Explorer` directory.
+2. Open the `SAP Explorer` directory in VS Code.
+3. Start a new AI chat session.
+4. Say: *"Here is our implementation plan. Let's start by executing Section 3: Workspace Scaffolding."*
