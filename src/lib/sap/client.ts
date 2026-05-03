@@ -2,6 +2,8 @@
 // This is acceptable for a sandbox environment, but shouldn't be used in production.
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
+import { parseStringPromise } from 'xml2js';
+
 export class SAPClient {
     private static instance: SAPClient;
     private baseUrl: string;
@@ -41,7 +43,6 @@ export class SAPClient {
                 'Authorization': this.authHeader,
                 'Accept': 'application/json'
             },
-            // Note: In Node 18+ native fetch, process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0' will handle the self-signed cert.
         });
 
         if (!response.ok) {
@@ -50,5 +51,29 @@ export class SAPClient {
         }
 
         return await response.json();
+    }
+
+    async getMetadata(apiPath: string) {
+        // Drop the service path and fetch $metadata
+        const servicePath = apiPath.split('/')[0];
+        const url = `${this.baseUrl}/${servicePath}/$metadata`;
+        console.log(`[SAPClient] Fetching Metadata: ${url}`);
+
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                'Authorization': this.authHeader,
+                'Accept': 'application/xml' // Metadata is XML
+            },
+        });
+
+        if (!response.ok) {
+            const text = await response.text();
+            throw new Error(`SAP Metadata Error ${response.status}: ${response.statusText} - ${text}`);
+        }
+
+        const xmlText = await response.text();
+        const json = await parseStringPromise(xmlText, { explicitArray: false });
+        return json;
     }
 }

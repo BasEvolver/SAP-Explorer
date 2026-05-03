@@ -1,0 +1,55 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model SapTable {
+  id          String   @id // Table name, e.g., MARA
+  description String?  // e.g., General Material Data
+  module      String?  // Logical module classification
+  isMaster    Boolean  @default(false)
+  updatedAt   DateTime @updatedAt
+  
+  fields      SapField[]
+  sourceRels  SapRelationship[] @relation("SourceTable")
+  targetRels  SapRelationship[] @relation("TargetTable")
+}
+
+model SapField {
+  id          String   @id @default(uuid())
+  tableId     String
+  name        String   // Field name, e.g., MATNR
+  description String?  // e.g., Material Number
+  dataType    String?  // e.g., CHAR
+  length      Int?
+  isKey       Boolean  @default(false)
+  
+  table       SapTable @relation(fields: [tableId], references: [id], onDelete: Cascade)
+
+  @@unique([tableId, name])
+}
+
+model SapRelationship {
+  id          String   @id @default(uuid())
+  sourceId    String
+  targetId    String
+  cardinality String?  // e.g., 1:N
+  
+  source      SapTable @relation("SourceTable", fields: [sourceId], references: [id], onDelete: Cascade)
+  target      SapTable @relation("TargetTable", fields: [targetId], references: [id], onDelete: Cascade)
+
+  @@unique([sourceId, targetId])
+}
+
+model SyncLog {
+  id          String   @id @default(uuid())
+  entityType  String   // e.g., "TABLES", "FIELDS", "RELATIONSHIPS"
+  status      String   // "RUNNING", "COMPLETED", "FAILED"
+  records     Int      @default(0)
+  message     String?
+  startedAt   DateTime @default(now())
+  completedAt DateTime?
+}
