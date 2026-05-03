@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Evolver - SAP SE16 Data Explorer</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; padding: 25px; background-color: #f4f7f6; color: #333; }
+        .app-container { max-width: 1000px; margin: auto; background: #fff; padding: 30px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        h2 { border-bottom: 3px solid #0078d4; padding-bottom: 10px; margin-top: 0; color: #0078d4; }
+        .status-bar { padding: 10px; margin-bottom: 20px; border-radius: 6px; font-weight: bold; text-align: center; }
+        .ready { background: #d4edda; color: #155724; }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+        label { display: block; font-weight: bold; margin-bottom: 8px; }
+        input, select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
+        .full-width { grid-column: span 2; }
+        button { width: 100%; padding: 15px; background: #0078d4; color: #fff; border: none; border-radius: 6px; font-size: 18px; cursor: pointer; transition: background 0.3s; }
+        button:hover { background: #005a9e; }
+        #json-output { margin-top: 25px; background: #282c34; color: #abb2bf; padding: 20px; border-radius: 8px; font-family: 'Consolas', monospace; font-size: 13px; max-height: 500px; overflow-y: auto; white-space: pre-wrap; border: 1px solid #111; }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <h2>Evolver Data Browser</h2>
+    <div id="load-status" class="status-bar">Checking Script Status...</div>
+
+    <div class="form-grid">
+        <div class="full-width">
+            <label>Select SAP Table/Entity:</label>
+            <select id="api_path">
+                <option value="API_GLACCOUNTINCHARTOFACCOUNTS_SRV/A_GLAccountInChartOfAccounts">G/L Master Data (SKA1)</option>
+                <option value="C_TRIALBALANCE_CDS/Results">Trial Balance (ACDOCA)</option>
+                <option value="API_BUSINESS_PARTNER/A_BusinessPartner">Business Partners (KNA1)</option>
+                <option value="API_PRODUCT_SRV/A_Product">Material Master (MARA)</option>
+            </select>
+        </div>
+        
+        <div>
+            <label>Username:</label>
+            <input type="text" id="user" value="Bas">
+        </div>
+        
+        <div>
+            <label>Password:</label>
+            <input type="password" id="pass" value="Aria1234">
+        </div>
+
+        <div class="full-width">
+            <label>Filters (Top 50 results):</label>
+            <input type="text" id="odata_filter" value="&$top=50">
+        </div>
+    </div>
+
+    <button onclick="window.fetchData()">Execute SE16 Extract</button>
+
+    <pre id="json-output">Results will appear here after execution...</pre>
+</div>
+
+<script>
+    // Ensure script is loaded and functions are global
+    window.onload = function() {
+        document.getElementById('load-status').innerText = "SYSTEM READY: Script Loaded Successfully";
+        document.getElementById('load-status').classList.add('ready');
+    };
+
+    window.fetchData = async function() {
+        const output = document.getElementById('json-output');
+        const baseUrl = "https://vhcals4hcs.dummy.nodomain:44301/sap/opu/odata/sap/";
+        const path = document.getElementById('api_path').value;
+        const filter = document.getElementById('odata_filter').value;
+        const user = document.getElementById('user').value;
+        const pass = document.getElementById('pass').
