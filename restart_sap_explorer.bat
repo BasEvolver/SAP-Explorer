@@ -24,6 +24,7 @@ if exist ".next" (
 
 echo.
 echo [3/4] Rebuilding Next.js application...
+call npx dotenv-cli -e .env.local -- prisma generate
 call npm run build
 
 echo.

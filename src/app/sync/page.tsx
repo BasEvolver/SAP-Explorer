@@ -6,6 +6,7 @@ import { Database, RefreshCw, Server, AlertCircle, CheckCircle2 } from "lucide-r
 export default function SyncDashboard() {
   const [logs, setLogs] = useState<any[]>([]);
   const [stats, setStats] = useState({ tables: 0, relationships: 0 });
+  const [configs, setConfigs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
 
@@ -15,6 +16,7 @@ export default function SyncDashboard() {
       const data = await res.json();
       if (data.logs) setLogs(data.logs);
       if (data.stats) setStats(data.stats);
+      if (data.configs) setConfigs(data.configs);
       
       // Check if actively syncing
       const isRunning = data.logs.some((l: any) => l.status === 'RUNNING');
@@ -46,6 +48,44 @@ export default function SyncDashboard() {
       setSyncing(false);
     }
   };
+
+  const toggleStrategy = async (id: string, currentStrategy: string) => {
+    const newStrategy = currentStrategy === 'REPLICATED' ? 'ON_DEMAND' : 'REPLICATED';
+    // Optimistic update
+    setConfigs(configs.map(c => c.id === id ? { ...c, strategy: newStrategy } : c));
+    try {
+      await fetch('/api/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'UPDATE_STRATEGY', id, strategy: newStrategy })
+      });
+    } catch (err) {
+      console.error(err);
+      fetchStatus(); // Revert on failure
+    }
+  };
+
+  const toggleEnable = async (id: string, currentEnabled: boolean) => {
+    const newEnabled = !currentEnabled;
+    // Optimistic update
+    setConfigs(configs.map(c => c.id === id ? { ...c, isEnabled: newEnabled } : c));
+    try {
+      await fetch('/api/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'TOGGLE_ENABLE', id, isEnabled: newEnabled })
+      });
+    } catch (err) {
+      console.error(err);
+      fetchStatus(); // Revert on failure
+    }
+  };
+
+  const groupedConfigs = configs.reduce((acc, config) => {
+    if (!acc[config.category]) acc[config.category] = [];
+    acc[config.category].push(config);
+    return acc;
+  }, {} as Record<string, any[]>);
 
   return (
     <div className="flex-1 w-full h-full p-8 overflow-y-auto">
@@ -82,6 +122,72 @@ export default function SyncDashboard() {
             <h3 className="text-slate-400 font-semibold mb-2">Cached Relationships (DD08L)</h3>
             <p className="text-4xl font-mono text-white">{stats.relationships.toLocaleString()}</p>
           </div>
+        </div>
+
+        {/* Object Strategy Configuration */}
+        <div className="mb-8">
+            <h2 className="text-xl font-bold mb-4">Object Replication Strategy</h2>
+            
+            {Object.keys(groupedConfigs).length === 0 ? (
+                <div className="glass-panel p-8 text-center text-slate-500 rounded-2xl">Loading configurations...</div>
+            ) : (
+                <div className="space-y-6">
+                    {(Object.entries(groupedConfigs) as [string, any[]][]).map(([category, items]) => {
+                        const replicatedCount = items.filter(i => i.strategy === 'REPLICATED').length;
+                        return (
+                        <div key={category} className="glass-panel rounded-2xl overflow-hidden">
+                            <div className="bg-black/20 px-6 py-4 border-b border-white/5 flex items-center justify-between">
+                                <h3 className="font-semibold text-slate-200">{category}</h3>
+                                <span className="text-xs font-medium text-slate-400 bg-white/5 px-2.5 py-1 rounded-full">{replicatedCount} Replicated / {items.length} Total</span>
+                            </div>
+                            <table className="w-full text-left">
+                                <thead className="border-b border-white/5 text-xs text-slate-400">
+                                    <tr>
+                                        <th className="px-6 py-3 font-medium">Object ID</th>
+                                        <th className="px-6 py-3 font-medium">Current Status</th>
+                                        <th className="px-6 py-3 font-medium text-right">Sync Strategy</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-white/5">
+                                    {items.map((config) => (
+                                        <tr key={config.id} className="hover:bg-white/5 transition-colors group">
+                                            <td className="px-6 py-4">
+                                                <div className="font-mono font-bold text-slate-200">{config.id}</div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <button 
+                                                    onClick={() => toggleEnable(config.id, config.isEnabled)}
+                                                    className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded border transition-colors ${
+                                                        config.isEnabled 
+                                                        ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20' 
+                                                        : 'bg-slate-800/80 border-slate-700 text-slate-400 hover:bg-slate-700'
+                                                    }`}
+                                                >
+                                                    <div className={`w-1.5 h-1.5 rounded-full ${config.isEnabled ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]' : 'bg-slate-500'}`} />
+                                                    {config.isEnabled ? 'Sync Active' : 'Sync Paused'}
+                                                </button>
+                                            </td>
+                                            <td className="px-6 py-4 text-right">
+                                                <button 
+                                                    onClick={() => toggleStrategy(config.id, config.strategy)}
+                                                    className={`text-xs px-3 py-1.5 rounded font-medium border transition-colors ${
+                                                        config.strategy === 'REPLICATED' 
+                                                        ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20' 
+                                                        : 'bg-amber-500/10 border-amber-500/20 text-amber-400 hover:bg-amber-500/20'
+                                                    }`}
+                                                >
+                                                    {config.strategy === 'REPLICATED' ? 'Replicated' : 'On-Demand'}
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                        );
+                    })}
+                </div>
+            )}
         </div>
 
         <h2 className="text-xl font-bold mb-4">Sync History</h2>

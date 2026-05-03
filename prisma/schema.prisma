@@ -1,9 +1,24 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
 }
 
 datasource db {
   provider = "postgresql"
+}
+
+enum SyncStrategy {
+  REPLICATED
+  ON_DEMAND
+}
+
+model ObjectConfig {
+  id          String       @id // Object name, e.g., MARA, DD08L
+  category    String       @default("Uncategorized") // e.g., "System", "Master Data"
+  strategy    SyncStrategy @default(ON_DEMAND)
+  isEnabled   Boolean      @default(true)
+  lastSync    DateTime?
+  updatedAt   DateTime     @updatedAt
 }
 
 model SapTable {
