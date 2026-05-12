@@ -40,7 +40,7 @@ const nodeTypes = {
   table: TableNode,
 };
 
-export default function ReactFlowGraph({ rootNode }: { rootNode: string }) {
+export default function ReactFlowGraph({ rootNode, overrideData }: { rootNode: string, overrideData?: { nodes: any[], links: any[] } }) {
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const [loading, setLoading] = useState(true);
@@ -52,46 +52,66 @@ export default function ReactFlowGraph({ rootNode }: { rootNode: string }) {
     setLoading(true);
     setError(null);
     try {
-      // Re-use our schema API but we can add descriptions later
-      const res = await fetch(`/api/sap/schema?root=${rootNode}`);
-      if (!res.ok) throw new Error('Failed to fetch ER Diagram data');
-      const json = await res.json();
+      let json = overrideData;
+      if (!json) {
+          const res = await fetch(`/api/sap/schema?root=${rootNode}`);
+          if (!res.ok) throw new Error('Failed to fetch ER Diagram data');
+          json = await res.json();
+      }
 
-      // Layout algorithm (simple concentric circles or grid for now)
+      // Layout algorithm
       const centerX = window.innerWidth / 2;
       const centerY = window.innerHeight / 2;
 
-      const newNodes = json.nodes.map((n: any, idx: number) => {
-        // Simple circular layout
-        const radius = n.id === rootNode ? 0 : 350;
-        const angle = (idx / (json.nodes.length - 1 || 1)) * 2 * Math.PI;
+      // Group nodes by type for better layout
+      const modules = json!.nodes.filter((n: any) => n.type === 'Module');
+      
+      const newNodes = json!.nodes.map((n: any, idx: number) => {
+        let radius = 400;
+        let angle = (idx / (json!.nodes.length - 1 || 1)) * 2 * Math.PI;
+        
+        if (n.type === 'Core' || n.id === rootNode) {
+            radius = 0;
+        } else if (n.type === 'Module') {
+            radius = 250;
+            angle = (modules.findIndex((m: any) => m.id === n.id) / (modules.length || 1)) * 2 * Math.PI;
+        } else if (n.parentModule) {
+            // Cluster views around their parent module
+            const modIdx = modules.findIndex((m: any) => m.id === n.parentModule);
+            const baseAngle = (modIdx / (modules.length || 1)) * 2 * Math.PI;
+            // Add a small random offset so they don't stack
+            angle = baseAngle + (Math.random() - 0.5) * 0.5;
+            radius = 450 + Math.random() * 50;
+        }
+
+        const isCore = n.type === 'Core' || n.id === rootNode;
         
         return {
           id: n.id,
           type: 'table',
           position: { 
-            x: n.id === rootNode ? centerX - 100 : centerX + radius * Math.cos(angle) - 100, 
-            y: n.id === rootNode ? centerY - 50 : centerY + radius * Math.sin(angle) - 50
+            x: centerX + radius * Math.cos(angle) - 100, 
+            y: centerY + radius * Math.sin(angle) - 50
           },
           data: { 
             id: n.id, 
             description: n.description,
-            isRoot: n.id === rootNode,
+            isRoot: isCore,
             isDark
           },
         };
       });
 
-      const newEdges = json.links.map((l: any, idx: number) => ({
+      const newEdges = json!.links.map((l: any, idx: number) => ({
         id: `e${l.source}-${l.target}-${idx}`,
         source: l.source,
         target: l.target,
         label: l.name,
         animated: true,
-        style: { stroke: isDark ? '#40826D' : '#1D4E89', strokeWidth: 2 },
+        style: { stroke: l.color || (isDark ? '#40826D' : '#1D4E89'), strokeWidth: l.type === 'CoreLink' ? 3 : 2 },
         markerEnd: {
           type: MarkerType.ArrowClosed,
-          color: isDark ? '#40826D' : '#1D4E89',
+          color: l.color || (isDark ? '#40826D' : '#1D4E89'),
         },
       }));
 
@@ -105,8 +125,8 @@ export default function ReactFlowGraph({ rootNode }: { rootNode: string }) {
   };
 
   useEffect(() => {
-    if (rootNode) fetchGraph();
-  }, [rootNode, isDark]);
+    if (rootNode || overrideData) fetchGraph();
+  }, [rootNode, isDark, overrideData]);
 
   const onConnect = useCallback((params: any) => setEdges((eds) => addEdge(params, eds)), [setEdges]);
 

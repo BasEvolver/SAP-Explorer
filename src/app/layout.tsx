@@ -18,7 +18,6 @@ export const metadata: Metadata = {
 };
 
 import Sidebar from "@/components/layout/Sidebar";
-import OmniSearch from "@/components/layout/OmniSearch";
 import { ThemeProvider } from "@/components/ThemeProvider";
 
 export default function RootLayout({
@@ -42,7 +41,6 @@ export default function RootLayout({
           <div className="flex h-screen w-full relative">
             <Sidebar />
             <main className="flex-1 flex flex-col h-full relative overflow-hidden">
-              <OmniSearch />
               {children}
             </main>
           </div>

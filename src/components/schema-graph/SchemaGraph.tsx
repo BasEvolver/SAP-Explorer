@@ -107,22 +107,41 @@ export default function SchemaGraph({ rootNode, onNodeClick, overrideData }: { r
           width={dimensions.width}
           height={dimensions.height}
           nodeLabel={(node: any) => `${node.id}${node.description ? `: ${node.description}` : ''}`}
-          nodeColor={(node: any) => node.id === rootNode ? '#FFB800' : (node.type === 'Master' ? '#40826D' : '#1D4E89')} 
-          nodeRelSize={6}
-          linkColor={() => isDark ? 'rgba(255, 255, 255, 0.4)' : 'rgba(0, 0, 0, 0.4)'} 
-          linkWidth={1}
-          linkDirectionalParticles={2}
+          nodeColor={(node: any) => node.color || '#3b82f6'} 
+          nodeVal={(node: any) => {
+            if (node.type === 'Core') return 40;
+            if (node.type === 'Module') return 15;
+            return 4;
+          }}
+          nodeRelSize={3}
+          linkColor={(link: any) => {
+            if (link.type === 'CoreLink') return isDark ? 'rgba(255, 255, 255, 0.9)' : 'rgba(0, 0, 0, 0.8)';
+            return isDark ? 'rgba(255, 255, 255, 0.6)' : 'rgba(0, 0, 0, 0.4)';
+          }} 
+          linkWidth={(link: any) => link.type === 'CoreLink' ? 2 : 1}
+          linkDirectionalParticles={(link: any) => link.type === 'CoreLink' ? 4 : 2}
           linkDirectionalParticleSpeed={0.005}
           nodeThreeObject={(node: any) => {
-            const isRoot = node.id === rootNode;
-            if (node.type === 'Master' || isRoot) {
+            const isCore = node.type === 'Core';
+            const isModule = node.type === 'Module';
+            
+            if (isCore || isModule || showDescription) {
               const labelText = showDescription && node.description ? node.description : node.id;
               const sprite = new SpriteText(labelText);
               sprite.color = isDark ? '#fff' : '#000';
-              sprite.textHeight = isRoot ? 12 : 8;
-              sprite.fontWeight = 'bold';
-              sprite.backgroundColor = isRoot ? 'rgba(255, 184, 0, 0.3)' : (isDark ? 'rgba(64, 130, 109, 0.4)' : 'rgba(64, 130, 109, 0.2)');
-              sprite.padding = isRoot ? 4 : 2;
+              sprite.textHeight = isCore ? 16 : (isModule ? 10 : 6);
+              sprite.fontWeight = isCore || isModule ? 'bold' : 'normal';
+              
+              if (isCore) {
+                sprite.backgroundColor = 'rgba(255, 255, 255, 0.3)'; // White glow for Core
+              } else if (isModule) {
+                // Use the module color with transparency
+                sprite.backgroundColor = node.color ? `${node.color}50` : 'rgba(16, 185, 129, 0.3)';
+              } else {
+                sprite.backgroundColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
+              }
+              
+              sprite.padding = isCore ? 6 : (isModule ? 4 : 2);
               sprite.borderRadius = 4;
               return sprite;
             }

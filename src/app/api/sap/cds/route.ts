@@ -11,6 +11,8 @@ const cdsODataMap: Record<string, string> = {
     "I_ProfitCenter": "API_PROFITCENTER_SRV/A_ProfitCenter",
     "I_JournalEntryItem": "API_JOURNALENTRYITEMBASIC_SRV/A_JournalEntryItemBasic",
     "Z_SalesUseTaxLookback": "Z_SALESUSETAXLOOKBACK_CDS/Z_SalesUseTaxLookback",
+    "Z_VatRegister": "Z_VATREGISTER_CDS/Z_VatRegister",
+    "Z_WithholdingTax": "Z_WITHHOLDINGTAX_CDS/Z_WithholdingTax",
     
     // Sales and Distribution
     "I_SalesOrder": "API_SALES_ORDER_SRV/A_SalesOrder",
