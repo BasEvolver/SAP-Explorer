@@ -68,3 +68,154 @@ model SyncLog {
   startedAt   DateTime @default(now())
   completedAt DateTime?
 }
+
+model SapDD08L {
+  TABNAME     String
+  FIELDNAME   String
+  AS4LOCAL    String
+  AS4VERS     String
+  CHECKTABLE  String?
+  FRKART      String?
+  CLASFIELD   String?
+  CLASVALUE   String?
+  CARDLEFT    String?
+  CARD        String?
+  CHECKFLAG   String?
+  ARBGB       String?
+  MSGNR       String?
+  NOINHERIT   String?
+  
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@id([TABNAME, FIELDNAME, AS4LOCAL, AS4VERS])
+}
+
+model SapDD02T {
+  TABNAME     String
+  DDLANGUAGE  String
+  AS4LOCAL    String
+  AS4VERS     String
+  DDTEXT      String?
+
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@id([TABNAME, DDLANGUAGE, AS4LOCAL, AS4VERS])
+}
+
+model SapTADIR {
+  PGMID       String
+  OBJECT      String
+  OBJ_NAME    String
+  DEVCLASS    String?
+
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@id([PGMID, OBJECT, OBJ_NAME])
+}
+
+model SapTDEVC {
+  DEVCLASS    String   @id
+  COMPONENT   String?
+
+  updatedAt   DateTime @default(now()) @updatedAt
+}
+
+model SapDF14T {
+  FCTR_ID     String
+  SPRAS       String
+  NAME        String?
+
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@id([FCTR_ID, SPRAS])
+}
+
+model SapTLDB {
+  LDBNAME     String   @id
+  LDBNA_NODE  String?
+
+  updatedAt   DateTime @default(now()) @updatedAt
+}
+
+model SapTLDBT {
+  SPRAS       String
+  LDBNAME     String
+  LDBTEXT     String?
+
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@id([SPRAS, LDBNAME])
+}
+
+model SapDD02L {
+  TABNAME     String   @id
+  TABCLASS    String?
+  AS4LOCAL    String?
+  AS4VERS     String?
+
+  updatedAt   DateTime @default(now()) @updatedAt
+}
+
+model SapDD03L {
+  TABNAME     String
+  FIELDNAME   String
+  AS4LOCAL    String
+  AS4VERS     String
+  POSITION    String?
+  KEYFLAG     String?
+
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@id([TABNAME, FIELDNAME, AS4LOCAL, AS4VERS])
+}
+
+model SapLDBN {
+  LDBNAME     String
+  NODEID      String
+  PARENTID    String?
+
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@id([LDBNAME, NODEID])
+}
+
+model SapTFDIR {
+  FUNCNAME    String   @id
+  PNAME       String?
+  INCLUDE     String?
+  FMODE       String?
+
+  updatedAt   DateTime @default(now()) @updatedAt
+}
+
+model SapTFTIT {
+  SPRAS       String
+  FUNCNAME    String
+  STEXT       String?
+
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@id([SPRAS, FUNCNAME])
+}
+
+model SapDDLDEPENDENCY {
+  DDLNAME    String
+  OBJECTTYPE String
+  OBJECTNAME String
+  STATE      String?
+
+  updatedAt  DateTime @default(now()) @updatedAt
+
+  @@id([DDLNAME, OBJECTTYPE, OBJECTNAME])
+}
+
+model SapDDHEADANNO {
+  STRUCOBJN  String
+  NAME       String
+  POSITION   String
+  VALUE      String?
+
+  updatedAt  DateTime @default(now()) @updatedAt
+
+  @@id([STRUCOBJN, NAME, POSITION])
+}

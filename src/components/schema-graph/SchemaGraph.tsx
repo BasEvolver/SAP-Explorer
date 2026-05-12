@@ -9,27 +9,28 @@ import { Loader2, AlertCircle, Filter } from "lucide-react";
 
 const MODULES = ['All', 'Finance', 'Sales', 'Procurement'];
 
-export default function SchemaGraph() {
+export default function SchemaGraph({ rootNode, onNodeClick, overrideData }: { rootNode?: string, onNodeClick?: (nodeId: string) => void, overrideData?: { nodes: any[], links: any[] } }) {
   const graphRef = useRef<any>(null);
-  const [data, setData] = useState({ nodes: [], links: [] });
+  const [data, setData] = useState<{ nodes: any[], links: any[] }>({ nodes: [], links: [] });
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeModule, setActiveModule] = useState('All');
+  const [showDescription, setShowDescription] = useState(false);
   const { resolvedTheme } = useTheme();
 
-  const fetchSchema = async (module: string) => {
+  const fetchSchema = async (root: string) => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/sap/schema?module=${module}`);
+      // In a real implementation this would hit an API that reads from SapDD08L where sourceId or targetId = root
+      const res = await fetch(`/api/sap/schema?root=${root}`);
       if (!res.ok) {
         const errData = await res.json();
         throw new Error(errData.error || 'Failed to fetch schema');
       }
       const json = await res.json();
       
-      // If the API returns too many nodes, the graph can freeze. We'll cap it at 300 nodes for the POC.
+      // Cap at 300 nodes to prevent freezing
       if (json.nodes.length > 300) {
           const limitedNodes = json.nodes.slice(0, 300);
           const nodeIds = new Set(limitedNodes.map((n: any) => n.id));
@@ -46,8 +47,13 @@ export default function SchemaGraph() {
   };
 
   useEffect(() => {
-    fetchSchema(activeModule);
-  }, [activeModule]);
+    if (overrideData) {
+        setData(overrideData);
+        setLoading(false);
+    } else if (rootNode) {
+      fetchSchema(rootNode);
+    }
+  }, [rootNode, overrideData]);
 
   useEffect(() => {
     const updateDimensions = () => {
@@ -72,8 +78,14 @@ export default function SchemaGraph() {
       graphRef.current.cameraPosition(
         { x: node.x * distRatio, y: node.y * distRatio, z: node.z * distRatio }, // new position
         node, // lookAt ({ x, y, z })
-        3000  // ms transition duration
+        1000  // ms transition duration
       );
+    }
+    
+    // Trigger external handler to drill down
+    if (onNodeClick && node.id !== rootNode) {
+        // slight delay before re-fetching
+        setTimeout(() => onNodeClick(node.id), 1000);
     }
   };
 
@@ -94,19 +106,23 @@ export default function SchemaGraph() {
           graphData={data}
           width={dimensions.width}
           height={dimensions.height}
-          nodeLabel="id"
-          nodeColor={(node: any) => node.type === 'Master' ? '#40826D' : '#1D4E89'} // Viridian for master, Blue for transaction
+          nodeLabel={(node: any) => `${node.id}${node.description ? `: ${node.description}` : ''}`}
+          nodeColor={(node: any) => node.id === rootNode ? '#FFB800' : (node.type === 'Master' ? '#40826D' : '#1D4E89')} 
           nodeRelSize={6}
-          linkColor={() => isDark ? 'rgba(255, 255, 255, 0.4)' : 'rgba(0, 0, 0, 0.4)'} // Highly visible lines
+          linkColor={() => isDark ? 'rgba(255, 255, 255, 0.4)' : 'rgba(0, 0, 0, 0.4)'} 
           linkWidth={1}
+          linkDirectionalParticles={2}
+          linkDirectionalParticleSpeed={0.005}
           nodeThreeObject={(node: any) => {
-            if (node.type === 'Master') {
-              const sprite = new SpriteText(node.id);
+            const isRoot = node.id === rootNode;
+            if (node.type === 'Master' || isRoot) {
+              const labelText = showDescription && node.description ? node.description : node.id;
+              const sprite = new SpriteText(labelText);
               sprite.color = isDark ? '#fff' : '#000';
-              sprite.textHeight = 8;
+              sprite.textHeight = isRoot ? 12 : 8;
               sprite.fontWeight = 'bold';
-              sprite.backgroundColor = isDark ? 'rgba(64, 130, 109, 0.4)' : 'rgba(64, 130, 109, 0.2)';
-              sprite.padding = 2;
+              sprite.backgroundColor = isRoot ? 'rgba(255, 184, 0, 0.3)' : (isDark ? 'rgba(64, 130, 109, 0.4)' : 'rgba(64, 130, 109, 0.2)');
+              sprite.padding = isRoot ? 4 : 2;
               sprite.borderRadius = 4;
               return sprite;
             }
@@ -122,7 +138,7 @@ export default function SchemaGraph() {
       {loading && (
         <div className="absolute inset-0 flex flex-col items-center justify-center">
             <Loader2 className={`w-12 h-12 animate-spin ${isDark ? 'text-evolver-viridian' : 'text-blue-600'}`} />
-            <p className={`mt-4 font-mono animate-pulse ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>Extracting S/4HANA Metadata...</p>
+            <p className={`mt-4 font-mono animate-pulse ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>Exploring Node: {rootNode}...</p>
         </div>
       )}
 
@@ -131,7 +147,7 @@ export default function SchemaGraph() {
             <div className="glass-panel p-6 rounded-2xl flex items-start gap-4 max-w-xl border-red-500/30">
                 <AlertCircle className="w-6 h-6 text-red-500 shrink-0 mt-1" />
                 <div>
-                    <h3 className={`font-bold text-lg ${isDark ? 'text-white' : 'text-slate-900'}`}>Metadata Extraction Failed</h3>
+                    <h3 className={`font-bold text-lg ${isDark ? 'text-white' : 'text-slate-900'}`}>Exploration Failed</h3>
                     <p className={`mt-2 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>{error}</p>
                 </div>
             </div>
@@ -140,24 +156,24 @@ export default function SchemaGraph() {
       
       {/* Overlay UI elements */}
       <div className="absolute bottom-6 left-6 flex flex-col gap-4">
-        <div className="glass-panel px-4 py-3 rounded-xl flex items-center gap-3 shadow-lg">
-            <Filter className={`w-5 h-5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`} />
-            <select 
-                value={activeModule}
-                onChange={(e) => setActiveModule(e.target.value)}
-                className={`bg-transparent border-none outline-none font-semibold cursor-pointer ${isDark ? 'text-white' : 'text-slate-900'}`}
-            >
-                {MODULES.map(m => (
-                    <option key={m} value={m} className="bg-slate-800 text-white">{m}</option>
-                ))}
-            </select>
-        </div>
-
-        <div className="glass-panel px-4 py-3 rounded-xl shadow-lg">
-          <h3 className={`font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>Schema Graph</h3>
-          <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+        <div className="glass-panel px-4 py-3 rounded-xl shadow-lg border border-white/5">
+          <h3 className={`font-semibold flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+            <div className="w-2 h-2 rounded-full bg-evolver-viridian animate-pulse" />
+            Exploration Graph
+          </h3>
+          <p className={`text-sm mb-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
             {data.nodes.length} Entities | {data.links.length} Relationships
           </p>
+          <button 
+            onClick={() => setShowDescription(!showDescription)}
+            className={`text-xs px-3 py-1.5 rounded-md border transition-colors w-full ${
+              isDark 
+                ? 'border-white/20 text-slate-300 hover:bg-white/10' 
+                : 'border-slate-300 text-slate-700 hover:bg-slate-200'
+            }`}
+          >
+            Show {showDescription ? 'Table Names' : 'Descriptions'}
+          </button>
         </div>
       </div>
     </div>

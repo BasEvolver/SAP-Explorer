@@ -1,94 +1,134 @@
 import { NextRequest, NextResponse } from "next/server";
-import { SAPClient } from "@/lib/sap/client";
+import { PrismaClient } from '@prisma/client';
+import { Pool } from 'pg';
+import { PrismaPg } from '@prisma/adapter-pg';
 
-const MODULE_SERVICES = {
-    'Finance': ['API_GLACCOUNTINCHARTOFACCOUNTS_SRV'],
-    'Sales': ['API_SALES_ORDER_SRV', 'API_BUSINESS_PARTNER'],
-    'Procurement': ['API_PURCHASEREQ_PROCESS_SRV', 'API_PRODUCT_SRV']
-};
+// Initialize Prisma once per module
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const adapter = new PrismaPg(pool);
+const prisma = new PrismaClient({ adapter });
 
 export async function GET(req: NextRequest) {
     try {
         const { searchParams } = new URL(req.url);
-        const module = searchParams.get('module') || 'All';
+        const rootNode = searchParams.get('root') || 'MARA';
+
+        // 1. Get 1st Degree relationships (Root Node Outgoing & Incoming)
+        const rootOutgoing = await prisma.sapDD08L.findMany({
+            where: { TABNAME: rootNode },
+            select: { TABNAME: true, CHECKTABLE: true, FIELDNAME: true }
+        });
+
+        const rootIncoming = await prisma.sapDD08L.findMany({
+            where: { CHECKTABLE: rootNode },
+            select: { TABNAME: true, CHECKTABLE: true, FIELDNAME: true },
+            take: 50 // Cap incoming to prevent massive hairballs for generic tables like T000
+        });
+
+        const firstDegreeTables = new Set<string>();
+        rootOutgoing.forEach(r => { if(r.CHECKTABLE && r.CHECKTABLE !== '*' && r.CHECKTABLE !== ' ') firstDegreeTables.add(r.CHECKTABLE) });
+        rootIncoming.forEach(r => { if(r.TABNAME) firstDegreeTables.add(r.TABNAME) });
+
+        // 2. Get 2nd Degree relationships (Outgoing dependencies of the 1st degree nodes)
+        // We only fetch outgoing to prevent exploding the graph size.
+        const secondDegreeRels = await prisma.sapDD08L.findMany({
+            where: { 
+                TABNAME: { in: Array.from(firstDegreeTables) }
+            },
+            select: { TABNAME: true, CHECKTABLE: true, FIELDNAME: true }
+        });
+
+        // Group 2nd degree by TABNAME and limit to 5 per table to keep graph clean
+        const groupedSecondDegree: any[] = [];
+        const countMap = new Map<string, number>();
         
-        let servicesToFetch: string[] = [];
-        if (module === 'All') {
-            servicesToFetch = Object.values(MODULE_SERVICES).flat();
-        } else {
-            servicesToFetch = MODULE_SERVICES[module as keyof typeof MODULE_SERVICES] || [];
-        }
-
-        const client = SAPClient.getInstance();
-        const nodesMap = new Map();
-        const links: any[] = [];
-        let groupCounter = 0;
-
-        for (const service of servicesToFetch) {
-            groupCounter++;
-            try {
-                const metadata = await client.getMetadata(service);
-                const schema = metadata['edmx:Edmx']['edmx:DataServices']['Schema'];
-                
-                // Ensure schema is an array (sometimes it's a single object if only 1 schema exists)
-                const schemas = Array.isArray(schema) ? schema : [schema];
-
-                for (const s of schemas) {
-                    const entityTypes = s.EntityType ? (Array.isArray(s.EntityType) ? s.EntityType : [s.EntityType]) : [];
-                    const associations = s.Association ? (Array.isArray(s.Association) ? s.Association : [s.Association]) : [];
-
-                    // Extract Nodes
-                    for (const entity of entityTypes) {
-                        const id = entity.$.Name;
-                        if (!nodesMap.has(id)) {
-                            // Simple heuristic for master vs transaction: transaction usually has 'Item' or 'Header'
-                            const isMasterData = !id.includes('Item') && !id.includes('Header') && !id.includes('Result');
-                            nodesMap.set(id, {
-                                id,
-                                name: id,
-                                group: groupCounter,
-                                val: isMasterData ? 20 : 5, // Larger nodes for core/master data
-                                type: isMasterData ? 'Master' : 'Transaction'
-                            });
-                        }
-                    }
-
-                    // Extract Links (Associations)
-                    for (const assoc of associations) {
-                        const ends = assoc.End ? (Array.isArray(assoc.End) ? assoc.End : [assoc.End]) : [];
-                        if (ends.length === 2) {
-                            const source = ends[0].$.Type.split('.').pop();
-                            const target = ends[1].$.Type.split('.').pop();
-                            
-                            // Only add link if both nodes exist (to avoid dangling links in partial module loads)
-                            if (source && target) {
-                                links.push({
-                                    source,
-                                    target,
-                                    name: assoc.$.Name
-                                });
-                            }
-                        }
-                    }
-                }
-            } catch (err) {
-                console.warn(`Failed to fetch metadata for ${service}:`, err);
-                // Continue to the next service even if one fails
+        for (const rel of secondDegreeRels) {
+            const count = countMap.get(rel.TABNAME) || 0;
+            if (count < 5) {
+                groupedSecondDegree.push(rel);
+                countMap.set(rel.TABNAME, count + 1);
             }
         }
 
-        // Filter out links where source or target isn't in our nodes list (cross-module links we didn't fetch)
-        const validLinks = links.filter(l => nodesMap.has(l.source) && nodesMap.has(l.target));
+        const outgoing = [...rootOutgoing, ...groupedSecondDegree];
+        const incoming = rootIncoming;
+
+        const nodesMap = new Map();
+        const links: any[] = [];
+        
+        // Add root node explicitly
+        nodesMap.set(rootNode, { id: rootNode, type: 'Root', val: 25 });
+
+        const processRels = (rels: any[]) => {
+            for (const rel of rels) {
+                // Ignore empty or wildcard check tables
+                if (!rel.CHECKTABLE || rel.CHECKTABLE === '*' || rel.CHECKTABLE === ' ') continue;
+                
+                const source = rel.TABNAME;
+                const target = rel.CHECKTABLE;
+                
+                // Add nodes if they don't exist
+                if (!nodesMap.has(source)) {
+                    nodesMap.set(source, { id: source, type: 'Transaction', val: 5 });
+                }
+                if (!nodesMap.has(target)) {
+                    nodesMap.set(target, { id: target, type: 'Master', val: 10 });
+                }
+                
+                // Add link
+                links.push({
+                    source,
+                    target,
+                    name: rel.FIELDNAME
+                });
+            }
+        };
+
+        processRels(outgoing);
+        processRels(incoming);
+
+        // Deduplicate links (some tables might have multiple fields pointing to the same check table)
+        const uniqueLinks = [];
+        const seenLinks = new Set();
+        for (const link of links) {
+            const key = `${link.source}-${link.target}`;
+            if (!seenLinks.has(key)) {
+                seenLinks.add(key);
+                uniqueLinks.push(link);
+            }
+        }
+
+        const nodesArray = Array.from(nodesMap.values());
+        const tableNames = nodesArray.map((n: any) => n.id);
+
+        // Fetch descriptions from our newly extracted SapDD02T cache
+        const descriptions = await prisma.sapDD02T.findMany({
+            where: { 
+                TABNAME: { in: tableNames },
+                DDLANGUAGE: 'E' // English only
+            },
+            select: { TABNAME: true, DDTEXT: true }
+        });
+
+        const descMap = new Map();
+        for (const desc of descriptions) {
+            descMap.set(desc.TABNAME, desc.DDTEXT);
+        }
+
+        // Attach descriptions to nodes
+        for (const node of nodesArray as any[]) {
+            node.description = descMap.get(node.id) || null;
+        }
 
         return NextResponse.json({
-            nodes: Array.from(nodesMap.values()),
-            links: validLinks
+            nodes: nodesArray,
+            links: uniqueLinks
         });
 
     } catch (error: any) {
         console.error("Schema API Error:", error);
         return NextResponse.json(
-            { error: error.message || "An error occurred while fetching SAP schema metadata." }, 
+            { error: error.message || "An error occurred while fetching DD08L graph data." }, 
             { status: 500 }
         );
     }

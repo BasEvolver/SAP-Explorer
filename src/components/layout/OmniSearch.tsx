@@ -8,10 +8,18 @@ export default function OmniSearch() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
+  const [query, setQuery] = useState("");
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && query.trim()) {
+      window.location.href = `/search?q=${encodeURIComponent(query.trim())}`;
+    }
+  };
+
   useEffect(() => setMounted(true), []);
 
   return (
-    <div className="absolute top-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-3xl px-4 flex items-center gap-4">
+    <div className="relative z-50 w-full max-w-3xl mx-auto mt-6 px-4 flex items-center gap-4 shrink-0">
       <div className="relative group flex-1">
         {/* Glow effect underneath */}
         <div className="absolute -inset-0.5 bg-gradient-to-r from-evolver-viridian to-evolver-blue rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
@@ -21,6 +29,9 @@ export default function OmniSearch() {
           <Search className="w-5 h-5 text-slate-400 group-focus-within:text-evolver-viridian transition-colors" />
           <input 
             type="text" 
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={handleKeyDown}
             placeholder="Search SAP Entities (e.g. VBAK, BAPI_SALESORDER_CREATEFROMDAT2)..." 
             className="w-full bg-transparent border-none outline-none px-3 text-sm text-slate-900 dark:text-white placeholder-slate-500"
           />

@@ -15,34 +15,51 @@ export async function GET() {
             take: 10
         });
         
-        const tableCount = await prisma.sapTable.count();
-        const relCount = await prisma.sapRelationship.count();
+        // Fetch actual counts from our replicated tables
+        const stats = {
+            dd08l: await prisma.sapDD08L.count(),
+            dd02t: await prisma.sapDD02T.count(),
+            dd02l: await prisma.sapDD02L.count(),
+            dd03l: await prisma.sapDD03L.count(),
+            ldbn: await prisma.sapLDBN.count(),
+            tldb: await prisma.sapTLDB.count(),
+            tldbt: await prisma.sapTLDBT.count(),
+            tfdir: await prisma.sapTFDIR.count(),
+            tftit: await prisma.sapTFTIT.count(),
+        };
+
         const configs = await prisma.objectConfig.findMany({
             orderBy: { id: 'asc' }
         });
 
-        // Pre-seed some default configs if the table is empty for the demo
-        if (configs.length === 0) {
-            const defaults = [
-                { id: 'T000', category: 'System Metadata', strategy: 'REPLICATED' as const, isEnabled: true },
-                { id: 'DD02L', category: 'System Metadata', strategy: 'REPLICATED' as const, isEnabled: true },
-                { id: 'DD08L', category: 'System Metadata', strategy: 'REPLICATED' as const, isEnabled: true },
-                { id: 'TVKO', category: 'Configuration Data', strategy: 'REPLICATED' as const, isEnabled: true },
-                { id: 'T001', category: 'Configuration Data', strategy: 'REPLICATED' as const, isEnabled: true },
-                { id: 'MARA', category: 'Master Data', strategy: 'ON_DEMAND' as const, isEnabled: true },
-                { id: 'KNA1', category: 'Master Data', strategy: 'ON_DEMAND' as const, isEnabled: true },
-                { id: 'LFA1', category: 'Master Data', strategy: 'ON_DEMAND' as const, isEnabled: true },
-                { id: 'VBAK', category: 'Transaction Data', strategy: 'ON_DEMAND' as const, isEnabled: true },
-                { id: 'BSEG', category: 'Transaction Data', strategy: 'ON_DEMAND' as const, isEnabled: true },
-                { id: 'EKKO', category: 'Transaction Data', strategy: 'ON_DEMAND' as const, isEnabled: true }
-            ];
-            await prisma.objectConfig.createMany({ data: defaults });
-            configs.push(...defaults.map(d => ({ ...d, lastSync: null, updatedAt: new Date() })));
+        // Ensure all default configs exist for our ACTUAL metadata tables
+        const defaultConfigs = [
+            { id: 'DD08L', category: 'Metadata (Relationships)', strategy: 'REPLICATED' as const, isEnabled: true },
+            { id: 'DD02L', category: 'Metadata (Tables)', strategy: 'REPLICATED' as const, isEnabled: true },
+            { id: 'DD02T', category: 'Metadata (Descriptions)', strategy: 'REPLICATED' as const, isEnabled: true },
+            { id: 'DD03L', category: 'Metadata (Fields)', strategy: 'ON_DEMAND' as const, isEnabled: true },
+            { id: 'TLDB', category: 'Logical Databases', strategy: 'REPLICATED' as const, isEnabled: true },
+            { id: 'TLDBT', category: 'Logical Databases', strategy: 'REPLICATED' as const, isEnabled: true },
+            { id: 'LDBN', category: 'Logical Databases', strategy: 'REPLICATED' as const, isEnabled: true },
+            { id: 'TFDIR', category: 'Interfaces (Functions)', strategy: 'REPLICATED' as const, isEnabled: true },
+            { id: 'TFTIT', category: 'Interfaces (Texts)', strategy: 'REPLICATED' as const, isEnabled: true }
+        ];
+
+        const existingIds = new Set(configs.map(c => c.id));
+        const missingDefaults = defaultConfigs.filter(d => !existingIds.has(d.id));
+
+        if (missingDefaults.length > 0) {
+            await prisma.objectConfig.createMany({ data: missingDefaults });
+            configs.push(...missingDefaults.map(d => ({ 
+                ...d, 
+                lastSync: null, 
+                updatedAt: new Date() 
+            })));
         }
 
         return NextResponse.json({ 
             logs, 
-            stats: { tables: tableCount, relationships: relCount },
+            stats,
             configs
         });
     } catch (error: any) {
@@ -76,9 +93,13 @@ export async function POST(req: NextRequest) {
 
         // Handle Full Extraction
         if (body.action === 'FULL_LOAD') {
-            // Trigger background extraction
-            const log = await SAPExtractor.triggerMockFullLoad();
-            return NextResponse.json({ message: "Extraction started", logId: log.id });
+            // Trigger actual background extraction
+            const apiPath = process.env.SAP_API_PATH || "Z_TABLE_READER_SRV/TableDataSet";
+            const log1 = await SAPExtractor.replicateDD02T(apiPath);
+            const log2 = await SAPExtractor.replicateLogicalDatabases(apiPath);
+            const log3 = await SAPExtractor.replicateCoreMetadata(apiPath);
+            
+            return NextResponse.json({ message: "Extraction started", logId: log3.id });
         }
         return NextResponse.json({ error: "Invalid action" }, { status: 400 });
     } catch (error: any) {
