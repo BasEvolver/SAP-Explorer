@@ -29,7 +29,8 @@ export class SAPClient {
             const response = await this.odataQuery("API_GLACCOUNTINCHARTOFACCOUNTS_SRV/A_GLAccountInChartOfAccounts", "&$top=1");
             return { status: "connected", testData: response };
         } catch (error: any) {
-            return { status: "error", message: error.message };
+            const cause = error.cause ? ` (${error.cause.message || error.cause.code})` : "";
+            return { status: "error", message: `${error.message}${cause}` };
         }
     }
 
@@ -37,13 +38,19 @@ export class SAPClient {
         const url = `${this.baseUrl}/${apiPath}?$format=json${filters}`;
         console.log(`[SAPClient] Fetching: ${url}`);
 
-        const response = await fetch(url, {
-            method: 'GET',
-            headers: {
-                'Authorization': this.authHeader,
-                'Accept': 'application/json'
-            },
-        });
+        let response;
+        try {
+            response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Authorization': this.authHeader,
+                    'Accept': 'application/json'
+                },
+            });
+        } catch (error: any) {
+            const cause = error.cause ? ` (${error.cause.message || error.cause.code})` : "";
+            throw new Error(`Network fetch failed: ${error.message}${cause}`);
+        }
 
         if (!response.ok) {
             const text = await response.text();
@@ -59,13 +66,19 @@ export class SAPClient {
         const url = `${this.baseUrl}/${servicePath}/$metadata`;
         console.log(`[SAPClient] Fetching Metadata: ${url}`);
 
-        const response = await fetch(url, {
-            method: 'GET',
-            headers: {
-                'Authorization': this.authHeader,
-                'Accept': 'application/xml' // Metadata is XML
-            },
-        });
+        let response;
+        try {
+            response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Authorization': this.authHeader,
+                    'Accept': 'application/xml' // Metadata is XML
+                },
+            });
+        } catch (error: any) {
+            const cause = error.cause ? ` (${error.cause.message || error.cause.code})` : "";
+            throw new Error(`Network fetch failed: ${error.message}${cause}`);
+        }
 
         if (!response.ok) {
             const text = await response.text();
