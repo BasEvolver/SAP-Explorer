@@ -36,39 +36,20 @@ export default function DiscoverPage() {
 
   return (
     <div className="relative w-full h-full flex flex-col flex-1 bg-evolver-bg-dark">
-      {/* Top Search Bar Overlay */}
-      <div className="absolute top-6 left-1/2 -translate-x-1/2 w-full max-w-2xl z-10 px-4 flex gap-4">
-        <form onSubmit={handleSearch} className="relative group flex-1">
-          <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
-            <Compass className="w-5 h-5 text-evolver-viridian group-focus-within:animate-pulse" />
-          </div>
-          <input 
-            type="text" 
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Deep Search SAP Dictionary (e.g. MARA, EKKO)..."
-            className="w-full bg-evolver-bg-obsidian/80 backdrop-blur-xl border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-evolver-viridian/50 focus:border-evolver-viridian/50 transition-all shadow-2xl"
-          />
-          <button type="submit" className="absolute inset-y-2 right-2 px-4 bg-white/10 hover:bg-white/20 text-white rounded-xl text-sm font-medium transition-colors">
-            Explore
+      {/* View Mode Toggle */}
+      <div className="absolute top-6 right-6 z-10 bg-evolver-bg-obsidian/80 backdrop-blur-xl border border-white/10 rounded-2xl p-2 flex items-center shadow-2xl">
+          <button 
+              onClick={() => setViewMode('3d')}
+              className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${viewMode === '3d' ? 'bg-evolver-viridian text-white' : 'text-slate-400 hover:text-white'}`}
+          >
+              3D Macro
           </button>
-        </form>
-
-        {/* View Mode Toggle */}
-        <div className="bg-evolver-bg-obsidian/80 backdrop-blur-xl border border-white/10 rounded-2xl p-2 flex items-center shadow-2xl">
-            <button 
-                onClick={() => setViewMode('3d')}
-                className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${viewMode === '3d' ? 'bg-evolver-viridian text-white' : 'text-slate-400 hover:text-white'}`}
-            >
-                3D Macro
-            </button>
-            <button 
-                onClick={() => setViewMode('2d')}
-                className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${viewMode === '2d' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'}`}
-            >
-                2D ER
-            </button>
-        </div>
+          <button 
+              onClick={() => setViewMode('2d')}
+              className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${viewMode === '2d' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'}`}
+          >
+              2D ER
+          </button>
       </div>
 
       {/* Exploratory Graph */}

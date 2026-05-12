@@ -2,10 +2,29 @@ import { NextRequest, NextResponse } from "next/server";
 import { SAPClient } from "@/lib/sap/client";
 
 const cdsODataMap: Record<string, string> = {
+    // Finance & Controlling
     "I_GLAccountInChartOfAccounts": "API_GLACCOUNTINCHARTOFACCOUNTS_SRV/A_GLAccountInChartOfAccounts",
     "I_CostCenter": "API_COSTCENTER_SRV/A_CostCenter",
     "I_ProfitCenter": "API_PROFITCENTER_SRV/A_ProfitCenter",
-    "I_JournalEntryItem": "API_JOURNALENTRYITEMBASIC_SRV/A_JournalEntryItemBasic"
+    "I_JournalEntryItem": "API_JOURNALENTRYITEMBASIC_SRV/A_JournalEntryItemBasic",
+    "Z_SalesUseTaxLookback": "Z_SALESUSETAXLOOKBACK_CDS/Z_SalesUseTaxLookback",
+    
+    // Sales and Distribution
+    "I_SalesOrder": "API_SALES_ORDER_SRV/A_SalesOrder",
+    "I_BillingDocument": "API_BILLING_DOCUMENT_SRV/A_BillingDocument",
+    "I_Customer": "API_BUSINESS_PARTNER/A_BusinessPartner",
+    
+    // Materials Management
+    "I_Product": "API_PRODUCT_SRV/A_Product",
+    "I_PurchaseOrderAPI01": "API_PURCHASEORDER_PROCESS_SRV/A_PurchaseOrder",
+    "I_Supplier": "API_BUSINESS_PARTNER/A_BusinessPartner",
+    
+    // Production Planning
+    "I_ManufacturingOrder": "API_PRODUCTION_ORDER_2_SRV/A_ProductionOrder",
+    "I_EnterpriseProject": "API_ENTERPRISE_PROJECT_SRV/A_EnterpriseProject",
+    
+    // Human Resources
+    "I_WorkforcePerson": "HCMFAB_EMPLOYEELOOKUP_SRV/EmployeeDetailSet"
 };
 
 export async function GET(req: NextRequest) {

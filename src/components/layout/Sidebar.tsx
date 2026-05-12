@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Compass, Database, Link as LinkIcon, Settings, HardDrive, ChevronDown, ChevronRight, FileText, Table, ServerCog, Blocks, Code2, Network, DatabaseZap, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { Compass, Database, Link as LinkIcon, Settings, HardDrive, ChevronDown, ChevronRight, FileText, Table, ServerCog, Blocks, Code2, Network, DatabaseZap, PanelLeftClose, PanelLeftOpen, Search } from "lucide-react";
 import clsx from "clsx";
 import ConnectionStatus from "@/components/layout/ConnectionStatus";
 import { useState } from "react";
@@ -85,6 +85,24 @@ export default function Sidebar() {
               <PanelLeftOpen className="w-5 h-5" />
           </button>
       )}
+
+      {/* Global Search Bar */}
+      <div className={clsx("mb-4 w-full", isCollapsed ? "px-2 hidden lg:flex justify-center" : "px-4 hidden lg:block")}>
+        {isCollapsed ? (
+            <button onClick={() => setIsCollapsed(false)} className="w-10 h-10 rounded-xl bg-black/40 border border-white/10 flex items-center justify-center hover:bg-white/5 transition-colors">
+                <Search className="w-5 h-5 text-slate-400" />
+            </button>
+        ) : (
+            <div className="relative group w-full">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-evolver-viridian transition-colors" />
+                <input 
+                    type="text" 
+                    placeholder="Search SAP (e.g. MARA)..."
+                    className="w-full bg-black/40 border border-white/10 rounded-xl py-2 pl-9 pr-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-evolver-viridian/50 focus:ring-1 focus:ring-evolver-viridian/50 transition-all shadow-inner"
+                />
+            </div>
+        )}
+      </div>
 
       {/* Navigation Links */}
       <nav className={clsx("flex-1 w-full space-y-2 overflow-y-auto overflow-x-hidden", isCollapsed ? "px-2" : "px-3")}>
