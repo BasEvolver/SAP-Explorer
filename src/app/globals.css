@@ -52,3 +52,19 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255,255,255,0.2); 
 }
+
+/* Relational Evidence Graph Animation Keyframes */
+@keyframes dash {
+  to {
+    stroke-dashoffset: -100;
+  }
+}
+
+@utility animate-dash-fast {
+  animation: dash 8s linear infinite;
+}
+
+@utility animate-dash-slow {
+  animation: dash 15s linear infinite;
+}
+

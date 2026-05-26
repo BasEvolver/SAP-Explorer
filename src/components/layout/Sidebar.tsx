@@ -3,13 +3,14 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Compass, Database, Link as LinkIcon, Settings, HardDrive, ChevronDown, ChevronRight, FileText, Table, ServerCog, Blocks, Code2, Network, DatabaseZap, PanelLeftClose, PanelLeftOpen, Search } from "lucide-react";
+import { Compass, Database, Link as LinkIcon, Settings, HardDrive, ChevronDown, ChevronRight, FileText, Table, ServerCog, Blocks, Code2, Network, DatabaseZap, PanelLeftClose, PanelLeftOpen, Search, TrendingUp } from "lucide-react";
 import clsx from "clsx";
 import ConnectionStatus from "@/components/layout/ConnectionStatus";
 import { useState } from "react";
 
 const navItems = [
   { icon: Compass, label: "Discover", href: "/" },
+  { icon: TrendingUp, label: "Working Capital Optimizer", href: "/aria-finance" },
   { 
     icon: Database, 
     label: "Data", 

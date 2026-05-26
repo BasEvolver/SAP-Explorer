@@ -219,3 +219,34 @@ model SapDDHEADANNO {
 
   @@id([STRUCOBJN, NAME, POSITION])
 }
+
+model SapArItem {
+  id            String   @id // Document ID
+  companyCode   String
+  customer      String
+  customerName  String
+  amount        Float
+  currency      String
+  glAccount     String
+  glAccountName String
+  postingDate   String
+  originalTerms String
+  avgLagDays    Int      @default(48)
+  updatedAt     DateTime @default(now()) @updatedAt
+}
+
+model SapApItem {
+  id            String   @id // Document ID
+  companyCode   String
+  vendor        String
+  vendorName    String
+  amount        Float
+  currency      String
+  glAccount     String
+  glAccountName String
+  postingDate   String
+  originalTerms String
+  zfbdt         String   // Baseline date (ZFBDT)
+  updatedAt     DateTime @default(now()) @updatedAt
+}
+
