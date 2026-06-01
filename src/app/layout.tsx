@@ -31,7 +31,7 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col bg-evolver-bg-dark text-slate-100 overflow-hidden" suppressHydrationWarning>
+      <body className="min-h-full flex flex-col bg-[#f8fafc] dark:bg-evolver-bg-dark text-slate-800 dark:text-slate-100 overflow-hidden transition-colors duration-300" suppressHydrationWarning>
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"

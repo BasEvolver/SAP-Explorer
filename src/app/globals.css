@@ -37,20 +37,39 @@ body {
   @apply border-evolver-viridian/50 shadow-[0_0_15px_rgba(64,130,109,0.3)];
 }
 
-/* Custom Scrollbar for dark theme */
+/* Custom Scrollbars - Premium Contrast & Visible Status */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
 }
 ::-webkit-scrollbar-track {
-  background: rgba(0,0,0,0.2); 
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 5px;
+}
+.dark ::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.03);
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255,255,255,0.1); 
-  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 5px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.22);
+  border-radius: 5px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255,255,255,0.2); 
+  background: rgba(0, 0, 0, 0.4);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.35);
+  border: 2px solid transparent;
+  background-clip: padding-box;
 }
 
 /* Relational Evidence Graph Animation Keyframes */

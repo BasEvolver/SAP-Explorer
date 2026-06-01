@@ -1,5 +1,6 @@
 "use client";
 
+import { useTheme } from "next-themes";
 import { ShieldCheck, ShieldAlert, CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
 import clsx from "clsx";
 
@@ -20,6 +21,9 @@ export default function RuleEngineStatus({
   lowestUnoptValue,
   discountRate,
 }: RuleEngineStatusProps) {
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme !== "light";
+
   // Rule 1: TR-09 (Buffer rule)
   const isTr09Passed = lowestOptValue >= minBuffer;
 
@@ -31,36 +35,36 @@ export default function RuleEngineStatus({
 
   return (
     <div className="glass-panel p-6 rounded-2xl flex flex-col space-y-4 shadow-lg">
-      <div className="flex items-center justify-between border-b border-white/5 pb-3">
-        <h3 className="text-sm font-bold text-slate-300 flex items-center">
+      <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/5 pb-3">
+        <h3 className="text-sm font-bold text-slate-800 dark:text-slate-300 flex items-center">
           <ShieldCheck className="w-4 h-4 mr-2 text-evolver-viridian" />
           Policy-as-Code / Deterministic Rule Engine
         </h3>
-        <span className="font-mono text-[9px] px-1.5 py-0.5 rounded bg-white/5 text-slate-400">
+        <span className="font-mono text-[9px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-transparent">
           v2.4.1-STABLE
         </span>
       </div>
 
       <div className="space-y-3.5">
         {/* Rule TR-09 */}
-        <div className="flex items-start justify-between space-x-3 p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors">
+        <div className="flex items-start justify-between space-x-3 p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/5 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors">
           <div className="flex-1 space-y-1">
             <div className="flex items-center space-x-2">
-              <span className="font-mono text-xs font-bold text-slate-200">TR-09</span>
-              <span className="text-[10px] text-slate-500 font-semibold">• Liquidity Safeguard</span>
+              <span className="font-mono text-xs font-bold text-slate-800 dark:text-slate-200">TR-09</span>
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold">• Liquidity Safeguard</span>
             </div>
-            <p className="text-[11px] text-slate-400">
+            <p className="text-[11px] text-slate-600 dark:text-slate-400">
               Maintain active cash reserve above the configured minimum buffer of <strong>${(minBuffer / 1000000).toFixed(2)}M</strong>.
             </p>
           </div>
           <div className="flex-shrink-0 pt-0.5">
             {isTr09Passed ? (
-              <span className="flex items-center space-x-1 text-emerald-400 font-semibold text-xs">
+              <span className="flex items-center space-x-1 text-emerald-600 dark:text-emerald-400 font-semibold text-xs">
                 <CheckCircle2 className="w-4.5 h-4.5" />
                 <span>PASSED</span>
               </span>
             ) : (
-              <span className="flex items-center space-x-1 text-rose-400 font-semibold text-xs">
+              <span className="flex items-center space-x-1 text-rose-600 dark:text-rose-400 font-semibold text-xs">
                 <XCircle className="w-4.5 h-4.5" />
                 <span>BREACH</span>
               </span>
@@ -69,24 +73,24 @@ export default function RuleEngineStatus({
         </div>
 
         {/* Rule AR-02 */}
-        <div className="flex items-start justify-between space-x-3 p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors">
+        <div className="flex items-start justify-between space-x-3 p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/5 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors">
           <div className="flex-1 space-y-1">
             <div className="flex items-center space-x-2">
-              <span className="font-mono text-xs font-bold text-slate-200">AR-02</span>
-              <span className="text-[10px] text-slate-500 font-semibold">• Revenue Leakage Cap</span>
+              <span className="font-mono text-xs font-bold text-slate-800 dark:text-slate-200">AR-02</span>
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold">• Revenue Leakage Cap</span>
             </div>
-            <p className="text-[11px] text-slate-400">
+            <p className="text-[11px] text-slate-600 dark:text-slate-400">
               Limit early payment incentive discounts to <strong>&le; 2.0%</strong> unless an active cash deficit triggers an emergency exception.
             </p>
           </div>
           <div className="flex-shrink-0 pt-0.5">
             {isAr02Passed ? (
-              <span className="flex items-center space-x-1 text-emerald-400 font-semibold text-xs">
+              <span className="flex items-center space-x-1 text-emerald-600 dark:text-emerald-400 font-semibold text-xs">
                 <CheckCircle2 className="w-4.5 h-4.5" />
                 <span>PASSED</span>
               </span>
             ) : (
-              <span className="flex items-center space-x-1 text-yellow-400 font-semibold text-xs">
+              <span className="flex items-center space-x-1 text-yellow-600 dark:text-yellow-400 font-semibold text-xs">
                 <AlertTriangle className="w-4.5 h-4.5" />
                 <span>OVERRIDE</span>
               </span>
@@ -95,25 +99,25 @@ export default function RuleEngineStatus({
         </div>
 
         {/* Rule AP-01 */}
-        <div className="flex items-start justify-between space-x-3 p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors">
+        <div className="flex items-start justify-between space-x-3 p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/5 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors">
           <div className="flex-1 space-y-1">
             <div className="flex items-center space-x-2">
-              <span className="font-mono text-xs font-bold text-slate-200">AP-01</span>
-              <span className="text-[10px] text-slate-500 font-semibold">• Supply Chain Integrity</span>
+              <span className="font-mono text-xs font-bold text-slate-800 dark:text-slate-200">AP-01</span>
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold">• Supply Chain Integrity</span>
             </div>
-            <p className="text-[11px] text-slate-400">
+            <p className="text-[11px] text-slate-600 dark:text-slate-400">
               Days Payable Outstanding (DPO) extension must not exceed <strong>15 days</strong> to preserve critical vendor relationships (ASML).
             </p>
           </div>
           <div className="flex-shrink-0 pt-0.5">
             {isAp01Passed ? (
-              <span className="flex items-center space-x-1 text-emerald-400 font-semibold text-xs">
+              <span className="flex items-center space-x-1 text-emerald-600 dark:text-emerald-400 font-semibold text-xs">
                 <CheckCircle2 className="w-4.5 h-4.5" />
                 <span>PASSED</span>
               </span>
             ) : (
-              <span className="flex items-center space-x-1 text-rose-400 font-semibold text-xs">
-                <ShieldAlert className="w-4.5 h-4.5 text-rose-400" />
+              <span className="flex items-center space-x-1 text-rose-600 dark:text-rose-450 font-semibold text-xs">
+                <ShieldAlert className="w-4.5 h-4.5 text-rose-600 dark:text-rose-450" />
                 <span>FLAGGED</span>
               </span>
             )}

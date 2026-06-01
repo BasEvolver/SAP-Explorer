@@ -43,7 +43,8 @@ import {
   Sun,
   Moon,
   Building,
-  Warehouse
+  Warehouse,
+  RotateCcw
 } from "lucide-react";
 import clsx from "clsx";
 
@@ -77,6 +78,346 @@ interface APItem {
   documentReference?: string | null;
   paymentBlock?: string | null;
 }
+
+interface TaxAuditItem {
+  doc: string;
+  type: string;
+  customerName: string;
+  soldToRegion: string;
+  shipToRegion: string;
+  netValue: number;
+  taxBilledRate: number;
+  taxBilledAmount: number;
+  taxCorrectRate: number;
+  taxCorrectAmount: number;
+  currency: string;
+  status: "Flagged" | "Resolved";
+  salesOrder?: string;
+  varianceType: "Exempt" | "Rate Mismatch" | "None";
+}
+
+const INITIAL_TAX_ITEMS: TaxAuditItem[] = [
+  {
+    doc: "90001641",
+    type: "Sales Order (OR)",
+    customerName: "Summit Tech Systems Inc.",
+    soldToRegion: "California (CA)",
+    shipToRegion: "Oregon (OR)",
+    netValue: 175.50,
+    taxBilledRate: 8.25,
+    taxBilledAmount: 14.48,
+    taxCorrectRate: 0.00,
+    taxCorrectAmount: 0.00,
+    currency: "USD",
+    status: "Flagged",
+    salesOrder: "3974",
+    varianceType: "Exempt"
+  },
+  {
+    doc: "90000016",
+    type: "Sales Order (OR)",
+    customerName: "Horizon Heavy Industries",
+    soldToRegion: "California (CA)",
+    shipToRegion: "Oregon (OR)",
+    netValue: 8480.00,
+    taxBilledRate: 8.25,
+    taxBilledAmount: 699.60,
+    taxCorrectRate: 0.00,
+    taxCorrectAmount: 0.00,
+    currency: "USD",
+    status: "Flagged",
+    salesOrder: "4515",
+    varianceType: "Exempt"
+  },
+  {
+    doc: "90001619",
+    type: "Purchase Order (NB)",
+    customerName: "Summit Tech Systems Inc.",
+    soldToRegion: "New York (NY)",
+    shipToRegion: "New Jersey (NJ)",
+    netValue: 210.60,
+    taxBilledRate: 8.875,
+    taxBilledAmount: 18.69,
+    taxCorrectRate: 6.625,
+    taxCorrectAmount: 13.95,
+    currency: "USD",
+    status: "Flagged",
+    salesOrder: "4500000001",
+    varianceType: "Rate Mismatch"
+  },
+  {
+    doc: "90000000",
+    type: "Purchase Order (NB)",
+    customerName: "Quantum Grid & Cable LLC",
+    soldToRegion: "New York (NY)",
+    shipToRegion: "New Jersey (NJ)",
+    netValue: 9170.00,
+    taxBilledRate: 8.875,
+    taxBilledAmount: 813.84,
+    taxCorrectRate: 6.625,
+    taxCorrectAmount: 607.51,
+    currency: "USD",
+    status: "Flagged",
+    salesOrder: "4500000002",
+    varianceType: "Rate Mismatch"
+  },
+  {
+    doc: "90000001",
+    type: "Purchase Order (NB)",
+    customerName: "Orion Freight Systems Corp.",
+    soldToRegion: "New York (NY)",
+    shipToRegion: "New Jersey (NJ)",
+    netValue: 9380.00,
+    taxBilledRate: 8.875,
+    taxBilledAmount: 832.48,
+    taxCorrectRate: 6.625,
+    taxCorrectAmount: 621.43,
+    currency: "USD",
+    status: "Flagged",
+    salesOrder: "4500000003",
+    varianceType: "Rate Mismatch"
+  },
+  {
+    doc: "90001639",
+    type: "Sales Invoice (F2)",
+    customerName: "Summit Tech Systems Inc.",
+    soldToRegion: "California (CA)",
+    shipToRegion: "California (CA)",
+    netValue: 1755.00,
+    taxBilledRate: 8.25,
+    taxBilledAmount: 144.79,
+    taxCorrectRate: 8.25,
+    taxCorrectAmount: 144.79,
+    currency: "USD",
+    status: "Resolved",
+    salesOrder: "3974",
+    varianceType: "None"
+  },
+  {
+    doc: "90000002",
+    type: "Sales Invoice (F2)",
+    customerName: "Vanguard Avionics Inc.",
+    soldToRegion: "California (CA)",
+    shipToRegion: "Oregon (OR)",
+    netValue: 3990.00,
+    taxBilledRate: 8.25,
+    taxBilledAmount: 329.18,
+    taxCorrectRate: 0.00,
+    taxCorrectAmount: 0.00,
+    currency: "USD",
+    status: "Flagged",
+    salesOrder: "2564",
+    varianceType: "Exempt"
+  },
+  {
+    doc: "90000003",
+    type: "Supplier Invoice (KR)",
+    customerName: "Cascade Specialty Materials Ltd.",
+    soldToRegion: "Washington (WA)",
+    shipToRegion: "Washington (WA)",
+    netValue: 1470.00,
+    taxBilledRate: 8.50,
+    taxBilledAmount: 124.95,
+    taxCorrectRate: 8.50,
+    taxCorrectAmount: 124.95,
+    currency: "USD",
+    status: "Resolved",
+    salesOrder: "8",
+    varianceType: "None"
+  },
+  {
+    doc: "90000004",
+    type: "Sales Invoice (F2)",
+    customerName: "Horizon Heavy Industries",
+    soldToRegion: "Washington (WA)",
+    shipToRegion: "Oregon (OR)",
+    netValue: 15890.00,
+    taxBilledRate: 8.50,
+    taxBilledAmount: 1350.65,
+    taxCorrectRate: 0.00,
+    taxCorrectAmount: 0.00,
+    currency: "USD",
+    status: "Flagged",
+    salesOrder: "9",
+    varianceType: "Exempt"
+  },
+  {
+    doc: "90000005",
+    type: "Sales Invoice (F2)",
+    customerName: "Apex Avionics Inc.",
+    soldToRegion: "Illinois (IL)",
+    shipToRegion: "Wisconsin (WI)",
+    netValue: 13020.00,
+    taxBilledRate: 8.25,
+    taxBilledAmount: 1074.15,
+    taxCorrectRate: 5.00,
+    taxCorrectAmount: 651.00,
+    currency: "USD",
+    status: "Flagged",
+    salesOrder: "12",
+    varianceType: "Rate Mismatch"
+  },
+  {
+    doc: "90001807",
+    type: "Supplier Invoice (KR)",
+    customerName: "Summit Tech Systems Inc.",
+    soldToRegion: "New York (NY)",
+    shipToRegion: "New York (NY)",
+    netValue: 203136.00,
+    taxBilledRate: 8.875,
+    taxBilledAmount: 18028.32,
+    taxCorrectRate: 8.875,
+    taxCorrectAmount: 18028.32,
+    currency: "USD",
+    status: "Resolved",
+    salesOrder: "15",
+    varianceType: "None"
+  },
+  {
+    doc: "90003770",
+    type: "Sales Invoice (F2)",
+    customerName: "Summit Defense Systems Group",
+    soldToRegion: "New York (NY)",
+    shipToRegion: "New Jersey (NJ)",
+    netValue: 2640.00,
+    taxBilledRate: 8.875,
+    taxBilledAmount: 234.30,
+    taxCorrectRate: 6.625,
+    taxCorrectAmount: 174.90,
+    currency: "USD",
+    status: "Flagged",
+    salesOrder: "16",
+    varianceType: "Rate Mismatch"
+  },
+  {
+    doc: "90000008",
+    type: "Supplier Invoice (KR)",
+    customerName: "Summit Defense Systems Group",
+    soldToRegion: "Massachusetts (MA)",
+    shipToRegion: "New Hampshire (NH)",
+    netValue: 2760.00,
+    taxBilledRate: 6.25,
+    taxBilledAmount: 172.50,
+    taxCorrectRate: 0.00,
+    taxCorrectAmount: 0.00,
+    currency: "USD",
+    status: "Flagged",
+    salesOrder: "18",
+    varianceType: "Exempt"
+  },
+  {
+    doc: "90000009",
+    type: "Sales Invoice (F2)",
+    customerName: "Vanguard Avionics Inc.",
+    soldToRegion: "Massachusetts (MA)",
+    shipToRegion: "Massachusetts (MA)",
+    netValue: 21960.00,
+    taxBilledRate: 6.25,
+    taxBilledAmount: 1372.50,
+    taxCorrectRate: 6.25,
+    taxCorrectAmount: 1372.50,
+    currency: "USD",
+    status: "Resolved",
+    salesOrder: "19",
+    varianceType: "None"
+  },
+  {
+    doc: "90001801",
+    type: "Supplier Invoice (KR)",
+    customerName: "Amplify Heavy Industries Corp.",
+    soldToRegion: "Pennsylvania (PA)",
+    shipToRegion: "Delaware (DE)",
+    netValue: 26670.00,
+    taxBilledRate: 6.00,
+    taxBilledAmount: 1600.20,
+    taxCorrectRate: 0.00,
+    taxCorrectAmount: 0.00,
+    currency: "USD",
+    status: "Flagged",
+    salesOrder: "21",
+    varianceType: "Exempt"
+  },
+  {
+    doc: "90003459",
+    type: "Supplier Invoice (KR)",
+    customerName: "Orion Freight Systems Corp.",
+    soldToRegion: "Pennsylvania (PA)",
+    shipToRegion: "Pennsylvania (PA)",
+    netValue: 9240.00,
+    taxBilledRate: 6.00,
+    taxBilledAmount: 554.40,
+    taxCorrectRate: 6.00,
+    taxCorrectAmount: 554.40,
+    currency: "USD",
+    status: "Resolved",
+    salesOrder: "25",
+    varianceType: "None"
+  },
+  {
+    doc: "90003493",
+    type: "Supplier Invoice (KR)",
+    customerName: "Summit Tech Systems Inc.",
+    soldToRegion: "Michigan (MI)",
+    shipToRegion: "Michigan (MI)",
+    netValue: 2560.00,
+    taxBilledRate: 6.00,
+    taxBilledAmount: 153.60,
+    taxCorrectRate: 6.00,
+    taxCorrectAmount: 153.60,
+    currency: "USD",
+    status: "Resolved",
+    salesOrder: "28",
+    varianceType: "None"
+  },
+  {
+    doc: "90000013",
+    type: "Supplier Invoice (KR)",
+    customerName: "Zenith Pharmaceutical LLC",
+    soldToRegion: "Michigan (MI)",
+    shipToRegion: "Ohio (OH)",
+    netValue: 800.00,
+    taxBilledRate: 6.00,
+    taxBilledAmount: 48.00,
+    taxCorrectRate: 5.75,
+    taxCorrectAmount: 46.00,
+    currency: "USD",
+    status: "Flagged",
+    salesOrder: "29",
+    varianceType: "Rate Mismatch"
+  },
+  {
+    doc: "90000014",
+    type: "Supplier Invoice (KR)",
+    customerName: "Summit Tech Systems Inc.",
+    soldToRegion: "California (CA)",
+    shipToRegion: "Oregon (OR)",
+    netValue: 14720.00,
+    taxBilledRate: 8.25,
+    taxBilledAmount: 1214.40,
+    taxCorrectRate: 0.00,
+    taxCorrectAmount: 0.00,
+    currency: "USD",
+    status: "Flagged",
+    salesOrder: "31",
+    varianceType: "Exempt"
+  },
+  {
+    doc: "90000015",
+    type: "Supplier Invoice (KR)",
+    customerName: "Cascade Specialty Materials Ltd.",
+    soldToRegion: "New York (NY)",
+    shipToRegion: "New Jersey (NJ)",
+    netValue: 1440.00,
+    taxBilledRate: 8.875,
+    taxBilledAmount: 127.80,
+    taxCorrectRate: 6.625,
+    taxCorrectAmount: 95.40,
+    currency: "USD",
+    status: "Flagged",
+    salesOrder: "32",
+    varianceType: "Rate Mismatch"
+  }
+];
 
 // Live Levenshtein String Similarity functions
 function getLevenshteinDistance(a: string, b: string): number {
@@ -171,6 +512,165 @@ interface Scenario {
   };
 }
 
+const getMockInvoicePDFData = (docNum: string) => {
+  const map: Record<string, {
+    billTo: string;
+    shipTo: string;
+    items: { desc: string; qty: number; price: number; code: string }[];
+    stamp: string;
+    memo?: string;
+  }> = {
+    "90001641": {
+      billTo: "Horizon Retailers\n500 Market St\nSan Francisco, CA 94105",
+      shipTo: "Horizon Retailers\n1200 NW Naito Pkwy\nPortland, OR 97209",
+      items: [{ desc: "Smart Rack Mount Rails (Pack of 5)", qty: 1, price: 175.50, code: "EXE" }],
+      stamp: "OCR: DESTINATION VARIANCE - EXEMPT STATE",
+      memo: "Shipment delivered to tax-exempt Oregon warehouse. California sales tax corrected to 0%."
+    },
+    "90001150": {
+      billTo: "Horizon Retailers\n500 Market St\nSan Francisco, CA 94105",
+      shipTo: "Horizon Retailers\n1200 NW Naito Pkwy\nPortland, OR 97209",
+      items: [{ desc: "Industrial High-Performance Servo Motors", qty: 16, price: 1500.00, code: "EXE" }],
+      stamp: "OCR: DESTINATION VARIANCE - EXEMPT STATE",
+      memo: "Large order transfer. Tax exempted due to interstate delivery parameters under OR regulations."
+    },
+    "90001619": {
+      billTo: "Sovereign Distributors\n200 Park Ave\nNew York, NY 10166",
+      shipTo: "Sovereign Distributors\n80 Park Pl\nNewark, NJ 07102",
+      items: [{ desc: "Ethernet Distribution Patch Cables Cat6A", qty: 30, price: 7.02, code: "UTX1" }],
+      stamp: "OCR: TAX JURISDICTION RATE MISMATCH",
+      memo: "Billed at New York rate (8.875%). Adjusted to New Jersey physical delivery rate (6.625%)."
+    },
+    "90001092": {
+      billTo: "Sovereign Distributors\n200 Park Ave\nNew York, NY 10166",
+      shipTo: "Sovereign Distributors\n80 Park Pl\nNewark, NJ 07102",
+      items: [{ desc: "Enterprise Cloud-Managed Core Switches", qty: 15, price: 5500.00, code: "UTX1" }],
+      stamp: "OCR: TAX JURISDICTION RATE MISMATCH",
+      memo: "High-value network upgrade. NYC withholding tax reclaimed. NJ destination rate applied."
+    },
+    "90001048": {
+      billTo: "Horizon Retailers\n500 Market St\nSan Francisco, CA 94105",
+      shipTo: "Horizon Retailers\n500 Market St\nSan Francisco, CA 94105",
+      items: [{ desc: "Standard Retail Point-of-Sale Terminals", qty: 28, price: 550.00, code: "UTX1" }],
+      stamp: "AUDIT COMPLIANT",
+      memo: "Addresses align. Standard California sales tax (8.25%) correctly withheld and reported."
+    },
+    "90001801": {
+      billTo: "Summit Heavy Industries\n1000 Louisiana St\nHouston, TX 77002",
+      shipTo: "Summit Heavy Industries\n1000 Louisiana St\nHouston, TX 77002",
+      items: [{ desc: "Heavy-Duty Hydraulic Pressing Cylinders", qty: 5, price: 25000.00, code: "UTX1" }],
+      stamp: "AUDIT COMPLIANT",
+      memo: "Internal delivery. Texas sales tax rate (8.25%) matches billing entity location."
+    },
+    "90001802": {
+      billTo: "Vanguard Tech Systems\n3000 Sand Hill Rd\nMenlo Park, CA 94025",
+      shipTo: "Vanguard Tech Systems\n200 SW Yamhill St\nPortland, OR 97204",
+      items: [{ desc: "Secure Hardware Encryption Keys (FIPS 140-3)", qty: 50, price: 190.00, code: "EXE" }],
+      stamp: "OCR: DESTINATION VARIANCE - EXEMPT STATE",
+      memo: "Physical shipment routed to Oregon tech labs. California tax overcharge reclaimed."
+    },
+    "90001803": {
+      billTo: "Apex Avionics\n9200 Marginal Way S\nSeattle, WA 98108",
+      shipTo: "Apex Avionics\n9200 Marginal Way S\nSeattle, WA 98108",
+      items: [{ desc: "High-Fidelity Autopilot Transponder Avionics", qty: 2, price: 17000.00, code: "UTX1" }],
+      stamp: "AUDIT COMPLIANT",
+      memo: "Seattle manufacturing facility delivery. Washington sales tax rate (8.50%) verified."
+    },
+    "90001804": {
+      billTo: "Apex Avionics\n9200 Marginal Way S\nSeattle, WA 98108",
+      shipTo: "Apex Avionics\n520 SW Yamhill St\nPortland, OR 97204",
+      items: [{ desc: "Ultra-Calibrated Avionics Wind-Tunnel Monitors", qty: 4, price: 12050.00, code: "EXE" }],
+      stamp: "OCR: DESTINATION VARIANCE - EXEMPT STATE",
+      memo: "Aerospace testing gear shipped to Oregon testing hangar. Full WA sales tax refund requested."
+    },
+    "90001805": {
+      billTo: "Equinox Solutions\n233 S Wacker Dr\nChicago, IL 60606",
+      shipTo: "Equinox Solutions\n777 E Wisconsin Ave\nMilwaukee, WI 53202",
+      items: [{ desc: "Enterprise Resource Load-Balancers", qty: 6, price: 10750.00, code: "UTX1" }],
+      stamp: "OCR: TAX JURISDICTION RATE MISMATCH",
+      memo: "IL rate (8.25%) corrected to WI delivery rate (5.00%). Implements correct interstate tax codes."
+    },
+    "90001806": {
+      billTo: "Orion Energy\n1251 Avenue of the Americas\nNew York, NY 10020",
+      shipTo: "Orion Energy\n1251 Avenue of the Americas\nNew York, NY 10020",
+      items: [{ desc: "High-Volume Grid Battery Storage Inverters", qty: 11, price: 10000.00, code: "UTX1" }],
+      stamp: "AUDIT COMPLIANT",
+      memo: "Consolidated New York close. NY tax rate (8.875%) verified against central ledger lines."
+    },
+    "90001807": {
+      billTo: "Orion Energy\n1251 Avenue of the Americas\nNew York, NY 10020",
+      shipTo: "Orion Energy\n1 Exchange Pl\nJersey City, NJ 07302",
+      items: [{ desc: "Substation Monitoring Optical Sensor Nodes", qty: 40, price: 710.00, code: "UTX1" }],
+      stamp: "OCR: TAX JURISDICTION RATE MISMATCH",
+      memo: "Power node shipment to Jersey City hub. NYC local surcharge corrected to NJ state tax."
+    },
+    "90001808": {
+      billTo: "Zenith Wholesale\n1 International Pl\nBoston, MA 02110",
+      shipTo: "Zenith Wholesale\n100 Commercial St\nManchester, NH 03101",
+      items: [{ desc: "Heavy-Duty Pallet Jack Units (Redwood)", qty: 25, price: 740.00, code: "EXE" }],
+      stamp: "OCR: DESTINATION VARIANCE - EXEMPT STATE",
+      memo: "Distribution jacks delivered to New Hampshire warehouse. Exempt from MA sales tax (6.25%)."
+    },
+    "90001809": {
+      billTo: "Zenith Wholesale\n1 International Pl\nBoston, MA 02110",
+      shipTo: "Zenith Wholesale\n1 International Pl\nBoston, MA 02110",
+      items: [{ desc: "Industrial Safety Goggles & Helmets Bundle", qty: 20, price: 260.00, code: "UTX1" }],
+      stamp: "AUDIT COMPLIANT",
+      memo: "Boston corporate supply close. MA state sales tax (6.25%) correctly logged in ledgers."
+    },
+    "90001810": {
+      billTo: "Beacon Consumer Goods\n1735 Market St\nPhiladelphia, PA 19103",
+      shipTo: "Beacon Consumer Goods\n1201 N Market St\nWilmington, DE 19801",
+      items: [{ desc: "Premium Recycled Cardboard Cartons", qty: 89000, price: 1.00, code: "EXE" }],
+      stamp: "OCR: DESTINATION VARIANCE - EXEMPT STATE",
+      memo: "Massive packaging shipment to tax-free Delaware fulfillment depot. PA tax (6.00%) reversed."
+    },
+    "90001811": {
+      billTo: "Beacon Consumer Goods\n1735 Market St\nPhiladelphia, PA 19103",
+      shipTo: "Beacon Consumer Goods\n1735 Market St\nPhiladelphia, PA 19103",
+      items: [{ desc: "Commercial Grade Biodegradable Pallet Wraps", qty: 80, price: 150.00, code: "UTX1" }],
+      stamp: "AUDIT COMPLIANT",
+      memo: "Philadelphia packaging supplies close. PA tax rate (6.00%) verified for local delivery."
+    },
+    "90001812": {
+      billTo: "Quantum Foundries\n400 Renaissance Center\nDetroit, MI 48243",
+      shipTo: "Quantum Foundries\n400 Renaissance Center\nDetroit, MI 48243",
+      items: [{ desc: "Custom Aluminum EV Chassis Casting Molds", qty: 1, price: 235000.00, code: "UTX1" }],
+      stamp: "AUDIT COMPLIANT",
+      memo: "Detroit engineering plant mold close. Michigan sales tax (6.00%) matches billing parameters."
+    },
+    "90001813": {
+      billTo: "Quantum Foundries\n400 Renaissance Center\nDetroit, MI 48243",
+      shipTo: "Quantum Foundries\n200 Public Sq\nCleveland, OH 44114",
+      items: [{ desc: "Industrial Furnace Silicon Carbide Rods", qty: 120, price: 650.00, code: "UTX1" }],
+      stamp: "OCR: TAX JURISDICTION RATE MISMATCH",
+      memo: "Furnace heating elements shipped to Cleveland. MI rate (6.00%) corrected to OH rate (5.75%)."
+    },
+    "90001814": {
+      billTo: "Horizon Retailers\n500 Market St\nSan Francisco, CA 94105",
+      shipTo: "Horizon Retailers\n1200 NW Naito Pkwy\nPortland, OR 97209",
+      items: [{ desc: "Next-Gen Edge Server Racks (Premium)", qty: 25, price: 4600.00, code: "EXE" }],
+      stamp: "OCR: DESTINATION VARIANCE - EXEMPT STATE",
+      memo: "Data center server upgrade shipped to Oregon hub. California tax (8.25%) overcharge reversed."
+    },
+    "90001815": {
+      billTo: "Sovereign Distributors\n200 Park Ave\nNew York, NY 10166",
+      shipTo: "Sovereign Distributors\n80 Park Pl\nNewark, NJ 07102",
+      items: [{ desc: "High-Volume Optical Transceivers (100Gbps)", qty: 290, price: 500.00, code: "UTX1" }],
+      stamp: "OCR: TAX JURISDICTION RATE MISMATCH",
+      memo: "Bulk transceiver components delivered to NJ depot. Reclaims NYC local tax surcharge."
+    }
+  };
+
+  return map[docNum] || {
+    billTo: "Horizon Retailers\n500 Market St\nSan Francisco, CA 94105",
+    shipTo: "Horizon Retailers\n1200 NW Naito Pkwy\nPortland, OR 97209",
+    items: [{ desc: "Industrial Hardware Supply", qty: 1, price: 150000.00, code: "UTX1" }],
+    stamp: "AUDIT VERIFIED",
+    memo: "Standard transactional tax lookup completed."
+  };
+};
+
 export default function ScenariosDashboard() {
   const [activeScenarioId, setActiveScenarioId] = useState<string>("ap-ar-optimization");
   const [activeTab, setActiveTab] = useState<TabId>("overview");
@@ -198,6 +698,8 @@ export default function ScenariosDashboard() {
   
   // Dynamic Extraction & Document Viewer States
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
+  const [selectedViewMode, setSelectedViewMode] = useState<"fiori" | "pdf">("fiori");
+  const [pdfPreviewType, setPdfPreviewType] = useState<"file" | "draft">("file");
   const [hasExtracted, setHasExtracted] = useState<Record<string, boolean>>({});
   const [isExtractingLive, setIsExtractingLive] = useState<boolean>(false);
   const [extractionLogs, setExtractionLogs] = useState<string[]>([]);
@@ -229,6 +731,20 @@ export default function ScenariosDashboard() {
   const [isOverdraftProtection, setIsOverdraftProtection] = useState<boolean>(true);
   const [useHighYieldArPreset, setUseHighYieldArPreset] = useState<boolean>(true);
 
+  // Working Capital Scenario Parameter States
+  const [wcDocScope, setWcDocScope] = useState<"all" | "orders" | "sales">("all");
+  const [minOrderValue, setMinOrderValue] = useState<number>(50000);
+  const [orderStageFilter, setOrderStageFilter] = useState<string>("all");
+
+  // Tax Lookback Scenario Parameter States
+  const [taxDocScope, setTaxDocScope] = useState<"all" | "billing" | "purchasing">("all");
+  const [taxCodeFilter, setTaxCodeFilter] = useState<string>("all");
+  const [taxVarianceThreshold, setTaxVarianceThreshold] = useState<number>(2.0);
+  const [isEnforceExemption, setIsEnforceExemption] = useState<boolean>(true);
+  const [isExemptScan, setIsExemptScan] = useState<boolean>(true);
+  const [taxAgreement1, setTaxAgreement1] = useState<boolean>(false);
+  const [taxAgreement2, setTaxAgreement2] = useState<boolean>(false);
+
   // execution terminal states
   const [approvalState, setApprovalState] = useState<Record<string, "idle" | "signed">>({});
   const [executionState, setExecutionState] = useState<Record<string, "idle" | "executing" | "success">>({});
@@ -246,7 +762,7 @@ export default function ScenariosDashboard() {
     // GROUP 1: CFO & Treasurer
     {
       id: "ap-ar-optimization",
-      title: "Dynamic AP/AR Working Capital",
+      title: "Working Capital",
       category: "Treasury Operations",
       desc: "Accelerate invoice discounts (AR) and dynamically extend baseline dates (AP) to stabilize cash runways above corporate safety margins.",
       icon: TrendingUp,
@@ -463,6 +979,62 @@ export default function ScenariosDashboard() {
         actionTaken: "Corrected regional sales tax indicators to match shipping destinations",
         impactMetrics: "Averted regulatory tax audit fines and erroneous withholding",
         sapVoucher: "Cleared SAP Doc reference: SEC-TAX-1710-150"
+      }
+    },
+    {
+      id: "tax-lookback",
+      title: "Tax Lookback",
+      category: "Auditing & Compliance",
+      desc: "Perform dynamic audits on standard billing documents (VBRK) and verify physical Ship-To addresses (VBPA) against OCR scanned invoice registries to recover overwithheld sales taxes.",
+      icon: Scale,
+      stakeholder: "Tax & Compliance",
+      valueProp: "Averts compliance penalty risk and recovers thousands in sales tax overpayments by matching actual physical shipping states.",
+      sapReadDesc: "Fetches S/4HANA billing document headers (VBRK), line items (VBRP), and Ship-To partner address physical regions (VBPA).",
+      ariaReasonDesc: "Compares system-determined ERP tax rates against actual physical warehouse destinations extracted via OCR.",
+      agenticActionsDesc: "Recalculates tax deltas, computes refund values, and issues a live OData PATCH write-back to update partner records.",
+      outcomeDesc: "Discovers $3,836.25 in overwithheld tax overcharges and adjusts S/4HANA records to secure refund certificates.",
+      whatWeAreDoing: "Tax Lookback audits standard billing documents and partner functions, comparing Sold-To corporate billing addresses with actual physical Ship-To coordinates extracted via high-accuracy scanned OCR invoice metadata.",
+      whyWeAreDoingIt: "Wrong shipping address registrations lead to incorrect tax rates being applied, incurring overpayment leaks or massive penalty audits on underwithholdings. Automated lookback corrections align standard ledger accounts and lock down compliance.",
+      flowSteps: [
+        { title: "1. Read / Ingest", desc: "Scan S/4HANA billing documents (VBRK) and partner profiles (VBPA).", dataIn: "CB_BILLING_DOCUMENT_SRV/BillingDocuments", dataOut: "PostgreSQL Compliance Cache", icon: Database },
+        { title: "2. Reconcile", desc: "Cross-reference physical OCR shipping destinations against ERP regions.", dataIn: "Scanned PDF shipping metadata", dataOut: "Tax Address Variance Matrix", icon: Activity },
+        { title: "3. Authorize", desc: "Request compliance permission to trigger OData PATCH adjustments.", dataIn: "Tax controller multi-sign", dataOut: "sha256 Compliance Hash", icon: FileEdit },
+        { title: "4. Execute", desc: "Commit live OData PATCH write-backs to adjust partner addresses.", dataIn: "API_SALES_ORDER_SRV/A_SalesOrderHeaderPartner", dataOut: "BSEG Adjusted G/L tax indices", icon: Terminal },
+        { title: "5. Audit Ledger", desc: "Generate refund certifications and lock down verified entries.", dataIn: "ACDOCA tax accounts check", dataOut: "TIM-TAX-LOOKBACK voucher", icon: CheckCircle }
+      ],
+      tables: ["VBRK (Billing Header)", "VBPA (Partner Functions)", "VBRP (Billing Items)", "ACDOCA (Consolidated Ledger)"],
+      objectiveMath: "\\text{Minimize } Tax\\,Delta = \\sum | Tax_{System} - Tax_{Physical} | \\implies Refund\\,Opportunity",
+      readPath: "CB_BILLING_DOCUMENT_SRV/BillingDocuments",
+      readHeaders: ["Billing Doc", "Customer", "Sold-To Region", "Ship-To Region", "Tax Billed", "Correct Tax"],
+      readRecords: [
+        { doc: "90001641", type: "Horizon Retailers", partner: "CA (California)", amount: "Oregon (OR)", date: "8.25% ($14.48)", terms: "0.00% (exempt)" },
+        { doc: "90001619", type: "Sovereign Distrib", partner: "NY (New York)", amount: "New Jersey (NJ)", date: "8.875% ($18.69)", terms: "6.625% ($13.95)" },
+        { doc: "90001048", type: "Horizon Retailers", partner: "CA (California)", amount: "California (CA)", date: "8.25% ($1,270.50)", terms: "8.25% ($1,270.50)" },
+        { doc: "90001150", type: "Horizon Retailers", partner: "CA (California)", amount: "Oregon (OR)", date: "8.25% ($1,980.00)", terms: "0.00% (OR exempt)" },
+        { doc: "90001092", type: "Sovereign Distrib", partner: "NY (New York)", amount: "New Jersey (NJ)", date: "8.875% ($7,321.88)", terms: "6.625% ($5,465.63)" }
+      ],
+      visualizerType: "tax",
+      reasoningRules: [
+        { rule: "OCR address extraction comparison", value: "Address variance detected", status: "flagged" },
+        { rule: "Tax jurisdiction code validation", value: "Exemption ID: Missing", status: "flagged" },
+        { rule: "OData PATCH write-back check", value: "Active Connection available", status: "passed" }
+      ],
+      bapiName: "OData PATCH / API_SALES_ORDER_SRV",
+      bapiDescription: "Commits live OData PATCH write-back updates to Sales Order Partner address records and synchronizes general ledgers.",
+      bapiLogs: [
+        "⏳ Establishing billing lookback audit pipeline validation...",
+        "📡 Scanning S/4HANA billing documents (CB_BILLING_DOCUMENT_SRV)...",
+        "🔍 Detected partner address variance between Sold-To CA and Ship-To OR.",
+        "🚀 Dispatching OData PATCH write-back to Sales Order WE partner...",
+        "   ↳ Updated Sales Order partner address region code to OR.",
+        "✅ Adjusted G/L sales tax accounts and posted adjusted values.",
+        "🎉 SUCCESS! Regional tax determination reconciled successfully."
+      ],
+      evidenceCertificate: {
+        hash: "sha256:4f89d3a1f9e2b8c5c7d6e4f3a2b1f09e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b3f",
+        actionTaken: "Updated S/4HANA Partner address regions via OData PATCH write-backs",
+        impactMetrics: "Recovered $3,836.25 in sales tax overcharge opportunities",
+        sapVoucher: "Cleared SAP Doc reference: SEC-TAX-LOOKBACK-1641"
       }
     },
     {
@@ -966,32 +1538,169 @@ export default function ScenariosDashboard() {
     }
   };
 
+  const [taxItems, setTaxItems] = useState<any[]>([]);
+  const [selectedTaxDoc, setSelectedTaxDoc] = useState<any>(null);
+
+  const loadTaxData = async () => {
+    setIsProcessing(true);
+    try {
+      const res = await fetch("/api/sap/tax-audit");
+      const json = await res.json();
+      if (res.ok && json.status === "success") {
+        setTaxItems(json.items || []);
+        // Auto-select first flagged item if none is selected
+        const flagged = (json.items || []).find((item: any) => item.status === "Flagged");
+        if (flagged) {
+          setSelectedTaxDoc(flagged);
+        } else if (json.items && json.items.length > 0) {
+          setSelectedTaxDoc(json.items[0]);
+        }
+      }
+    } catch (e) {
+      console.error("Error loading tax audit data:", e);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleResetTaxLookback = async () => {
+    setIsProcessing(true);
+    try {
+      const res = await fetch("/api/sap/tax-audit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "RESET" })
+      });
+      if (res.ok) {
+        await loadTaxData();
+        setHasExtracted(prev => ({ ...prev, "tax-lookback": false }));
+        setApprovalState(prev => ({ ...prev, "tax-lookback": "idle" }));
+        setExecutionState(prev => ({ ...prev, "tax-lookback": "idle" }));
+        setTaxAgreement1(false);
+        setTaxAgreement2(false);
+        setSelectedInvoice(null);
+        alert("Demo cache reset successfully! Tax Lookback is back to the initial flagged state.");
+      }
+    } catch (e) {
+      console.error("Failed to reset demo cache:", e);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+
   // Live S/4HANA OData Gateway Extraction Run
   const handleTriggerExtraction = () => {
     setIsExtractingLive(true);
     setExtractionLogs([]);
     
+    if (activeScenarioId === "tax-lookback") {
+      const rfcHeaderLogs = [
+        "⏳ [INFO] [RFC_CONN_01] Initializing RFC connection handshake to S/4HANA Fiori Gateway...",
+        "🔑 [INFO] [RFC_AUTH] Authenticating user 'bas@evolver.ai' via Secure OAuth2 Profile...",
+        "📡 [INFO] [RFC_GATEWAY] Connection established to https://172.211.212.84:44301/sap/opu/odata/sap/CB_BILLING_DOCUMENT_SRV",
+        "🔍 [INFO] [ODATA_QUERY] Parsing parameters & filters:",
+        "   ├── $expand = SNAV_INVOICE_ITEM,CPREVIOUS_SALES_ORDERS",
+        "   ├── $filter = CompanyCode eq '1710'",
+        "   └── $top = 20",
+        "📦 [INFO] [ETL_ENGINE] Launching billing data extraction..."
+      ];
+      
+      const logs = [
+        ...rfcHeaderLogs,
+        "📊 [INFO] [ETL_METRIC] System calculated total volume: 5 records match the query scope.",
+        "🚀 [INGEST] [CHUNK_01] Fetching offsets: 0 - 5...",
+        "📥 [INGEST] [CHUNK_01] Received 5 billing documents | HTTP 200 OK | Size: 18.5KB",
+        "⚙️ [TAX_AUDIT] Cross-referencing physical warehouse addresses with ERP partners...",
+        "⚠️ [TAX_AUDIT] Discovered 2 tax jurisdiction region variances (CA vs OR, NY vs NJ).",
+        "💾 [POSTGRES] Wrote 5 rows to table 'sap_billing_cache' [Staged: 100%]",
+        "📊 [INFO] [SUCCESS] Synced 5 rows successfully.",
+        "🎉 [INFO] Ready for real-time Sales & Use Tax lookback audit!"
+      ];
+      
+      let currentLine = 0;
+      const interval = setInterval(async () => {
+        if (currentLine < logs.length) {
+          setExtractionLogs(prev => [...prev, logs[currentLine]]);
+          currentLine++;
+        } else {
+          clearInterval(interval);
+          try {
+            await fetch("/api/sap/tax-audit", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ action: "INGEST" })
+            });
+          } catch (e) {
+            console.error("Backend ingest failed", e);
+          }
+          await loadTaxData();
+          setHasExtracted(prev => ({ ...prev, [activeScenario.id]: true }));
+          setIsExtractingLive(false);
+        }
+      }, 150);
+      return;
+    }
+
     const isAPAR = activeScenarioId === "ap-ar-optimization";
     const isDuplicate = activeScenarioId === "duplicate-payments";
     
-    // Choose appropriate table based on scenario
-    const targetTable = isAPAR ? "ACDOCA" : isDuplicate ? "BSIK/BSID" : "ACDOCA/BSEG";
-    const readPath = activeScenario.readPath || "API_GLACCOUNTLINEITEM/GLAccountLineItem";
-    
-    // Build simulated OData query string dynamically
+    // Choose appropriate table & path dynamically
+    let targetTable = "ACDOCA/BSEG";
+    let readPath = activeScenario.readPath || "API_GLACCOUNTLINEITEM/GLAccountLineItem";
     let filterString = `(CompanyCode eq '${companyCode}') and (FiscalYear eq '${fiscalYear}')`;
-    if (docTypeFilter !== "All") {
-      filterString += ` and (DocumentType eq '${docTypeFilter}')`;
-    }
-    if (clearingStatus === "open") {
-      filterString += " and (ClearingDate eq null)";
-    } else if (clearingStatus === "cleared") {
-      filterString += " and (ClearingDate ne null)";
+    let selectFields = "DocumentNumber,CompanyCode,FiscalYear,PostingDate,GLAccount,AmountInCompanyCodeCurrency,DebitCreditCode,ClearingDate";
+    let matchedCount = 0;
+
+    if (isAPAR) {
+      if (wcDocScope === "orders") {
+        targetTable = "EKKO/EKPO";
+        readPath = "API_PURCHASEORDER_PROCESS_SRV/A_PurchaseOrder";
+        filterString = `(CompanyCode eq '${companyCode}') and (OrderValue ge ${minOrderValue})`;
+        selectFields = "PurchaseOrder,CompanyCode,PurchasingOrganization,DocumentDate,OrderValue,Supplier,SupplierName,OverallBillingStatus";
+        matchedCount = minOrderValue >= 100000 ? 12 : minOrderValue >= 50000 ? 32 : 84;
+      } else if (wcDocScope === "sales") {
+        targetTable = "VBAK/VBAP";
+        readPath = "API_SALES_ORDER_SRV/A_SalesOrder";
+        filterString = `(CompanyCode eq '${companyCode}') and (OverallBillingStatus ne 'C')`;
+        selectFields = "SalesOrder,CompanyCode,SalesOrganization,CreationDate,NetValue,SoldToParty,CustomerName,OverallBillingStatus";
+        matchedCount = 68;
+      } else {
+        targetTable = "BSID/BSIK";
+        readPath = "API_GLACCOUNTLINEITEM/GLAccountLineItem";
+        filterString = `(CompanyCode eq '${companyCode}') and (ClearingDate eq null)`;
+        selectFields = "DocumentNumber,CompanyCode,FiscalYear,PostingDate,GLAccount,AmountInCompanyCodeCurrency,DebitCreditCode,ClearingDate";
+        matchedCount = companyCode === "1710" ? 194 : companyCode === "1010" ? 45 : 6;
+      }
+    } else if (isDuplicate) {
+      targetTable = "BSIK";
+      readPath = "API_OPERATIONAL_AP_SRV/BSIK_OpenItems";
+      filterString = `(CompanyCode eq '${companyCode}') and (ClearingDate eq null) and (SimilarityMatch ge ${duplicateThreshold}%)`;
+      selectFields = "AccountingDocument,CompanyCode,FiscalYear,PostingDate,Vendor,VendorName,AmountInCompanyCodeCurrency,ClearingDate,InvoiceReference";
+      matchedCount = duplicateThreshold >= 90 ? 4 : duplicateThreshold >= 85 ? 12 : 27;
+    } else {
+      // Fallback scenarios
+      if (docTypeFilter !== "All") {
+        filterString += ` and (DocumentType eq '${docTypeFilter}')`;
+      }
+      if (clearingStatus === "open") {
+        filterString += " and (ClearingDate eq null)";
+      } else if (clearingStatus === "cleared") {
+        filterString += " and (ClearingDate ne null)";
+      }
+      if (fiscalYear === "2019") {
+        matchedCount = 194;
+      } else if (fiscalYear === "2020") {
+        matchedCount = 45;
+      } else {
+        matchedCount = 6;
+      }
     }
     
     let pagingString = "";
     if (topLimit !== "all") {
       pagingString = `&$top=${topLimit}`;
+      matchedCount = Math.min(matchedCount, parseInt(topLimit));
     }
 
     const rfcHeaderLogs = [
@@ -999,21 +1708,11 @@ export default function ScenariosDashboard() {
       "🔑 [INFO] [RFC_AUTH] Authenticating user 'bas@evolver.ai' via Secure OAuth2 Profile...",
       `📡 [INFO] [RFC_GATEWAY] Connection established to https://s4hana-cal.local:443/sap/opu/odata/sap/${readPath.split('/')[0]}`,
       "🔍 [INFO] [ODATA_QUERY] Parsing parameters & filters:",
-      `   ├── $select = DocumentNumber,CompanyCode,FiscalYear,PostingDate,GLAccount,AmountInCompanyCodeCurrency,DebitCreditCode,ClearingDate`,
+      `   ├── $select = ${selectFields}`,
       `   ├── $filter = ${filterString}`,
-      `   └── $orderby = PostingDate desc${pagingString ? `\n   └── $top = ${topLimit}` : ""}`,
+      `   └── $orderby = ${isAPAR && wcDocScope === "orders" ? "DocumentDate" : isAPAR && wcDocScope === "sales" ? "CreationDate" : "PostingDate"} desc${pagingString ? `\n   └── $top = ${topLimit}` : ""}`,
       `📦 [INFO] [ETL_ENGINE] Launching parallel chunk extraction from Table: ${targetTable}...`
     ];
-
-    // Determine the realistic counts matching selected parameters from database audits
-    let matchedCount = 0;
-    if (fiscalYear === "2019") {
-      matchedCount = isAPAR ? 194 : isDuplicate ? 17 : 194;
-    } else if (fiscalYear === "2020") {
-      matchedCount = isAPAR ? 45 : isDuplicate ? 45 : 45;
-    } else {
-      matchedCount = isAPAR ? 6 : isDuplicate ? 5 : 6;
-    }
 
     if (topLimit !== "all") {
       matchedCount = Math.min(matchedCount, parseInt(topLimit));
@@ -1075,6 +1774,8 @@ export default function ScenariosDashboard() {
   useEffect(() => {
     if (activeScenarioId === "ap-ar-optimization" || activeScenarioId === "duplicate-payments") {
       loadSapData();
+    } else if (activeScenarioId === "tax-lookback") {
+      loadTaxData();
     }
   }, [companyCode, activeScenarioId]);
 
@@ -1368,6 +2069,63 @@ export default function ScenariosDashboard() {
     setExecutionState(prev => ({ ...prev, [activeScenario.id]: "executing" }));
     setTerminalLogs([]);
 
+    // Closed-loop direct database writeback for Tax Lookback Audit
+    if (activeScenario.id === "tax-lookback") {
+      if (!selectedTaxDoc) {
+        setTerminalLogs(["❌ No tax audit document selected."]);
+        setExecutionState(prev => ({ ...prev, [activeScenario.id]: "idle" }));
+        return;
+      }
+      
+      const regionMatch = selectedTaxDoc.shipToRegion?.match(/\(([^)]+)\)/);
+      const regionCode = regionMatch ? regionMatch[1] : (selectedTaxDoc.shipToRegion || "OR");
+
+      fetch("/api/sap/tax-audit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "EXECUTE_ADJUSTMENT",
+          doc: selectedTaxDoc.doc,
+          salesOrder: selectedTaxDoc.salesOrder || "22",
+          shipToRegion: regionCode
+        })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === "success" && data.logs) {
+          let currentLogIndex = 0;
+          const logInterval = setInterval(() => {
+            if (currentLogIndex < data.logs.length) {
+              setTerminalLogs(prev => [...prev, data.logs[currentLogIndex]]);
+              currentLogIndex++;
+            } else {
+              clearInterval(logInterval);
+              setExecutionState(prev => ({ ...prev, [activeScenario.id]: "success" }));
+              loadTaxData();
+            }
+          }, 350);
+        } else {
+          setTerminalLogs(prev => [
+            "⏳ Establishing secure RFC handshake with live S/4HANA ERP instance...",
+            "🔑 Authenticating active tenant credentials bas@evolver.ai...",
+            "❌ Error during execution: " + (data.error || "Unknown error")
+          ]);
+          setExecutionState(prev => ({ ...prev, [activeScenario.id]: "idle" }));
+        }
+      })
+      .catch(err => {
+        console.error("Execution error:", err);
+        setTerminalLogs(prev => [
+          "⏳ Establishing secure RFC handshake with live S/4HANA ERP instance...",
+          "🔑 Authenticating active tenant credentials bas@evolver.ai...",
+          "❌ Execution network failure: " + err.message
+        ]);
+        setExecutionState(prev => ({ ...prev, [activeScenario.id]: "idle" }));
+      });
+      
+      return;
+    }
+
     // Closed-loop direct database writeback for Duplicate Payments
     if (activeScenario.id === "duplicate-payments") {
       const invoiceIdsToBlock = detectedDuplicates.flatMap(item => [item.id1, item.id2]);
@@ -1412,6 +2170,40 @@ export default function ScenariosDashboard() {
   // Normalize the selected invoice into a unified document structure for FB03 modal
   const docDetails = useMemo(() => {
     if (!selectedInvoice) return null;
+    
+    // Check if it's a tax lookback audit item
+    if ("taxBilledRate" in selectedInvoice) {
+      const taxItem = selectedInvoice as any;
+      const isSales = taxItem.type ? taxItem.type.includes("Sales") : true;
+      return {
+        docNum: taxItem.doc,
+        docType: isSales ? "DR" : "KR",
+        docTypeDesc: taxItem.type || "Invoice",
+        companyCode: companyCode,
+        docDate: "2026-05-15",
+        postingDate: "2026-05-15",
+        fiscalYear: "2026",
+        period: "05",
+        reference: taxItem.salesOrder ? `SO-${taxItem.salesOrder}` : `INV-TAX-${taxItem.doc}`,
+        currency: taxItem.currency || "USD",
+        amount: taxItem.netValue,
+        partnerId: isSales ? "17100001" : "17300082",
+        partnerName: taxItem.customerName,
+        partnerType: isSales ? "Customer" : "Supplier",
+        glAccount: isSales ? "121000" : "300000",
+        glAccountName: isSales ? "Accounts Receivable" : "Trade Payables",
+        terms: "Z030 (Net 30)",
+        paymentBlock: null,
+        postingKeys: {
+          line1: isSales
+            ? { pk: "01", type: "Customer Debit", account: "17100001", name: taxItem.customerName, amount: taxItem.netValue, isDebit: true }
+            : { pk: "31", type: "Supplier Credit", account: "17300082", name: taxItem.customerName, amount: taxItem.netValue, isDebit: false },
+          line2: isSales
+            ? { pk: "50", type: "G/L Credit", account: "410000", name: "Domestic Sales Revenue", amount: taxItem.netValue, isDebit: false }
+            : { pk: "40", type: "G/L Debit", account: "510000", name: "Trade Expense - Goods", amount: taxItem.netValue, isDebit: true }
+        }
+      };
+    }
     
     // Check if it's a fuzzy duplicate match object
     if ("doc1" in selectedInvoice && "doc2" in selectedInvoice) {
@@ -1573,15 +2365,9 @@ export default function ScenariosDashboard() {
                 <div className="flex items-center gap-1.5 bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-white/5 px-2.5 py-1 rounded-xl shadow-sm">
                   <Building className="w-3.5 h-3.5 text-evolver-viridian" />
                   <span className="text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider text-[9px]">Company Code:</span>
-                  <select
-                    value={companyCode}
-                    onChange={(e) => setCompanyCode(e.target.value)}
-                    className="bg-transparent text-slate-800 dark:text-slate-200 font-mono font-extrabold focus:outline-none border-none cursor-pointer text-[10.5px]"
-                  >
-                    <option value="1710" className="bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200">1710 (US Financials)</option>
-                    <option value="1010" className="bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200">1010 (EU Financials)</option>
-                    <option value="0001" className="bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200">0001 (Global Ledger)</option>
-                  </select>
+                  <span className="text-slate-850 dark:text-slate-200 font-mono font-extrabold text-[10.5px] uppercase">
+                    {companyCode === "1710" ? "1710 (US Financials)" : companyCode === "1010" ? "1010 (EU Financials)" : "0001 (Global Ledger)"}
+                  </span>
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
@@ -1877,13 +2663,26 @@ export default function ScenariosDashboard() {
                 {/* Live metadata query badges */}
                 <div className="text-[9.5px] font-mono text-slate-500 flex items-center gap-3">
                   {hasExtracted[activeScenario.id] && (
-                    <button
-                      onClick={() => setHasExtracted(prev => ({ ...prev, [activeScenario.id]: false }))}
-                      className="px-2.5 py-1 text-[9.5px] font-bold font-mono tracking-wide text-slate-600 dark:text-slate-300 hover:text-emerald-500 dark:hover:text-emerald-400 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 rounded-lg border border-slate-200 dark:border-white/5 flex items-center gap-1.5 transition-all cursor-pointer select-none active:scale-95 shrink-0"
-                    >
-                      <Sliders className="w-3.5 h-3.5" />
-                      CONFIGURE & SYNC AGAIN
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setHasExtracted(prev => ({ ...prev, [activeScenario.id]: false }))}
+                        className="px-2.5 py-1 text-[9.5px] font-bold font-mono tracking-wide text-slate-600 dark:text-slate-300 hover:text-emerald-500 dark:hover:text-emerald-400 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 rounded-lg border border-slate-200 dark:border-white/5 flex items-center gap-1.5 transition-all cursor-pointer select-none active:scale-95 shrink-0"
+                      >
+                        <Sliders className="w-3.5 h-3.5" />
+                        CONFIGURE & SYNC AGAIN
+                      </button>
+
+                      {activeScenarioId === "tax-lookback" && (
+                        <button
+                          onClick={handleResetTaxLookback}
+                          className="px-2.5 py-1 text-[9.5px] font-bold font-mono tracking-wide text-rose-600 dark:text-rose-450 hover:text-rose-550 dark:hover:text-rose-350 bg-rose-50 dark:bg-rose-950/20 hover:bg-rose-100 dark:hover:bg-rose-900/40 rounded-lg border border-rose-200 dark:border-rose-900/30 flex items-center gap-1.5 transition-all cursor-pointer select-none active:scale-95 shrink-0"
+                          title="Revert all invoice adjustments and flags to initial demo status"
+                        >
+                          <RotateCcw className="w-3.5 h-3.5" />
+                          RESET DEMO DATA
+                        </button>
+                      )}
+                    </div>
                   )}
                   <span>Endpoint: <strong className="text-cyan-600 dark:text-cyan-400">{activeScenario.readPath}</strong></span>
                   {(activeScenarioId === "ap-ar-optimization" || activeScenarioId === "duplicate-payments") && sapSource && (
@@ -1919,88 +2718,335 @@ export default function ScenariosDashboard() {
 
                       {/* Authentic SAP OData Query Filters */}
                       <div className="grid grid-cols-2 gap-3 pt-1">
-                        <div className="space-y-1">
-                          <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
-                            Company Code (BUKRS)
-                          </label>
-                          <select
-                            value={companyCode}
-                            onChange={(e) => setCompanyCode(e.target.value)}
-                            disabled={isExtractingLive}
-                            className="w-full px-2 py-1.5 text-[10.5px] font-mono bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:opacity-50 transition-all cursor-pointer"
-                          >
-                            <option value="1710">1710 (Domestic US)</option>
-                            <option value="1010">1010 (Germany ERP)</option>
-                          </select>
-                        </div>
+                        {activeScenarioId === "ap-ar-optimization" ? (
+                          <>
+                            {/* Working Capital Specific Filters */}
+                            <div className="space-y-1">
+                              <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
+                                Company Code (BUKRS)
+                              </label>
+                              <select
+                                value={companyCode}
+                                onChange={(e) => setCompanyCode(e.target.value)}
+                                disabled={isExtractingLive}
+                                className="w-full px-2 py-1.5 text-[10.5px] font-mono bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:opacity-50 transition-all cursor-pointer"
+                              >
+                                <option value="1710">1710 (Domestic US)</option>
+                                <option value="1010">1010 (Germany ERP)</option>
+                              </select>
+                            </div>
 
-                        <div className="space-y-1">
-                          <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
-                            Fiscal Year (GJAHR)
-                          </label>
-                          <select
-                            value={fiscalYear}
-                            onChange={(e) => setFiscalYear(e.target.value)}
-                            disabled={isExtractingLive}
-                            className="w-full px-2 py-1.5 text-[10.5px] font-mono bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:opacity-50 transition-all cursor-pointer"
-                          >
-                            <option value="2019">2019 (AR Focus / 194 lines)</option>
-                            <option value="2020">2020 (AP Focus / 45 lines)</option>
-                            <option value="2018">2018 (Legacy / 5 lines)</option>
-                          </select>
-                        </div>
+                            <div className="space-y-1">
+                              <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
+                                Document Scope ($filter)
+                              </label>
+                              <select
+                                value={wcDocScope}
+                                onChange={(e) => setWcDocScope(e.target.value as any)}
+                                disabled={isExtractingLive}
+                                className="w-full px-2 py-1.5 text-[10.5px] font-mono bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:opacity-50 transition-all cursor-pointer"
+                              >
+                                <option value="all">Ledger Invoices (BSID/BSIK)</option>
+                                <option value="orders">Purchase Orders (EKKO/EKPO)</option>
+                                <option value="sales">Sales Orders (VBAK/VBAP)</option>
+                              </select>
+                            </div>
 
-                        <div className="space-y-1">
-                          <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
-                            Open Items Only (AUGDT)
-                          </label>
-                          <select
-                            value={clearingStatus}
-                            onChange={(e) => setClearingStatus(e.target.value)}
-                            disabled={isExtractingLive}
-                            className="w-full px-2 py-1.5 text-[10.5px] font-mono bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:opacity-50 transition-all cursor-pointer"
-                          >
-                            <option value="open">AUGDT eq null (Unpaid)</option>
-                            <option value="cleared">AUGDT ne null (Cleared)</option>
-                            <option value="all">All Postings (Full Audit)</option>
-                          </select>
-                        </div>
+                            <div className="space-y-1">
+                              <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
+                                Min Order Value ($)
+                              </label>
+                              <select
+                                value={minOrderValue}
+                                onChange={(e) => setMinOrderValue(Number(e.target.value))}
+                                disabled={isExtractingLive || wcDocScope === "all"}
+                                className="w-full px-2 py-1.5 text-[10.5px] font-mono bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:opacity-50 transition-all cursor-pointer"
+                              >
+                                <option value="0">All Orders (Value {'>='} 0)</option>
+                                <option value="50000">{'>='} $50,000 (Major Accounts)</option>
+                                <option value="100000">{'>='} $100,000 (High Priority)</option>
+                              </select>
+                            </div>
 
-                        <div className="space-y-1">
-                          <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
-                            Records Page Limit ($top)
-                          </label>
-                          <select
-                            value={topLimit}
-                            onChange={(e) => setTopLimit(e.target.value)}
-                            disabled={isExtractingLive}
-                            className="w-full px-2 py-1.5 text-[10.5px] font-mono bg-white dark:bg-slate-950/40 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:opacity-50 transition-all cursor-pointer"
-                          >
-                            <option value="all">No Page Limit ($top = full)</option>
-                            <option value="100">100 Rows ($top = 100)</option>
-                            <option value="5">5 Rows (Quick Pitch)</option>
-                          </select>
-                        </div>
+                            <div className="space-y-1">
+                              <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
+                                Records Page Limit ($top)
+                              </label>
+                              <select
+                                value={topLimit}
+                                onChange={(e) => setTopLimit(e.target.value)}
+                                disabled={isExtractingLive}
+                                className="w-full px-2 py-1.5 text-[10.5px] font-mono bg-white dark:bg-slate-950/40 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:opacity-50 transition-all cursor-pointer"
+                              >
+                                <option value="all">No Page Limit ($top = full)</option>
+                                <option value="100">100 Rows ($top = 100)</option>
+                                <option value="5">5 Rows (Quick Pitch)</option>
+                              </select>
+                            </div>
+                          </>
+                        ) : activeScenarioId === "duplicate-payments" ? (
+                          <>
+                            {/* Duplicate Invoice Mitigation Specific Filters */}
+                            <div className="space-y-1">
+                              <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
+                                Company Code (BUKRS)
+                              </label>
+                              <select
+                                value={companyCode}
+                                onChange={(e) => setCompanyCode(e.target.value)}
+                                disabled={isExtractingLive}
+                                className="w-full px-2 py-1.5 text-[10.5px] font-mono bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:opacity-50 transition-all cursor-pointer"
+                              >
+                                <option value="1710">1710 (Domestic US)</option>
+                                <option value="1010">1010 (Germany ERP)</option>
+                              </select>
+                            </div>
+
+                            <div className="space-y-1">
+                              <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
+                                Fuzzy Similarity Match Threshold
+                              </label>
+                              <select
+                                value={duplicateThreshold}
+                                onChange={(e) => setDuplicateThreshold(Number(e.target.value))}
+                                disabled={isExtractingLive}
+                                className="w-full px-2 py-1.5 text-[10.5px] font-mono bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:opacity-50 transition-all cursor-pointer"
+                              >
+                                <option value="90">90% Similarity (Standard Audit)</option>
+                                <option value="85">85% Similarity (Broad Audit)</option>
+                                <option value="75">75% Similarity (Deep Scan)</option>
+                              </select>
+                            </div>
+
+                            <div className="space-y-1">
+                              <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
+                                Clearing Status (AUGDT)
+                              </label>
+                              <div className="w-full px-3 py-1.5 text-[10px] font-mono bg-slate-100 dark:bg-black/30 border border-slate-200 dark:border-white/5 rounded-xl text-amber-600 dark:text-amber-400 font-bold select-none h-[32px] flex items-center shadow-inner">
+                                AUGDT eq null (Unpaid Open Items)
+                              </div>
+                            </div>
+
+                            <div className="space-y-1">
+                              <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
+                                Records Page Limit ($top)
+                              </label>
+                              <select
+                                value={topLimit}
+                                onChange={(e) => setTopLimit(e.target.value)}
+                                disabled={isExtractingLive}
+                                className="w-full px-2 py-1.5 text-[10.5px] font-mono bg-white dark:bg-slate-955/40 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:opacity-50 transition-all cursor-pointer"
+                              >
+                                <option value="all">No Page Limit ($top = full)</option>
+                                <option value="100">100 Rows ($top = 100)</option>
+                                <option value="5">5 Rows (Quick Pitch)</option>
+                              </select>
+                            </div>
+                          </>
+                        ) : activeScenarioId === "tax-lookback" ? (
+                          <>
+                            {/* Tax Lookback Specific Filters */}
+                            <div className="space-y-1">
+                              <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
+                                Company Code (BUKRS)
+                              </label>
+                              <select
+                                value={companyCode}
+                                onChange={(e) => setCompanyCode(e.target.value)}
+                                disabled={isExtractingLive}
+                                className="w-full px-2 py-1.5 text-[10.5px] font-mono bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:opacity-50 transition-all cursor-pointer"
+                              >
+                                <option value="1710">1710 (Domestic US)</option>
+                                <option value="1010">1010 (Germany ERP)</option>
+                              </select>
+                            </div>
+
+                            <div className="space-y-1">
+                              <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
+                                Document Type (VBRK vs RBKP)
+                              </label>
+                              <select
+                                value={taxDocScope}
+                                onChange={(e) => setTaxDocScope(e.target.value as any)}
+                                disabled={isExtractingLive}
+                                className="w-full px-2 py-1.5 text-[10.5px] font-mono bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:opacity-50 transition-all cursor-pointer"
+                              >
+                                <option value="all">All Invoices & Billing Docs</option>
+                                <option value="billing">Sales Billing Documents (VBRK)</option>
+                                <option value="purchasing">Supplier Invoices (RBKP/RSEG)</option>
+                              </select>
+                            </div>
+
+                            <div className="space-y-1">
+                              <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
+                                Tax Jurisdiction Code (MWSKZ)
+                              </label>
+                              <select
+                                value={taxCodeFilter}
+                                onChange={(e) => setTaxCodeFilter(e.target.value)}
+                                disabled={isExtractingLive}
+                                className="w-full px-2 py-1.5 text-[10.5px] font-mono bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:opacity-50 transition-all cursor-pointer"
+                              >
+                                <option value="all">All Tax Codes</option>
+                                <option value="UTX1">UTX1 (US Sales & Use Tax)</option>
+                                <option value="MWST">MWST (EU Output Value Added Tax)</option>
+                                <option value="EXE">EXE (Tax Exempt / Certificate)</option>
+                              </select>
+                            </div>
+
+                            <div className="space-y-1">
+                              <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
+                                Min Address Variance Threshold (%)
+                              </label>
+                              <select
+                                value={taxVarianceThreshold}
+                                onChange={(e) => setTaxVarianceThreshold(Number(e.target.value))}
+                                disabled={isExtractingLive}
+                                className="w-full px-2 py-1.5 text-[10.5px] font-mono bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:opacity-50 transition-all cursor-pointer"
+                              >
+                                <option value="0">All Invoices (0% Variance)</option>
+                                <option value="2">&gt;= 2.0% (Address Deviation Flag)</option>
+                                <option value="5">&gt;= 5.0% (High Refund Potential)</option>
+                              </select>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            {/* Fallback Standard Filters */}
+                            <div className="space-y-1">
+                              <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
+                                Company Code (BUKRS)
+                              </label>
+                              <select
+                                value={companyCode}
+                                onChange={(e) => setCompanyCode(e.target.value)}
+                                disabled={isExtractingLive}
+                                className="w-full px-2 py-1.5 text-[10.5px] font-mono bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:opacity-50 transition-all cursor-pointer"
+                              >
+                                <option value="1710">1710 (Domestic US)</option>
+                                <option value="1010">1010 (Germany ERP)</option>
+                              </select>
+                            </div>
+
+                            <div className="space-y-1">
+                              <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
+                                Fiscal Year (GJAHR)
+                              </label>
+                              <select
+                                value={fiscalYear}
+                                onChange={(e) => setFiscalYear(e.target.value)}
+                                disabled={isExtractingLive}
+                                className="w-full px-2 py-1.5 text-[10.5px] font-mono bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:opacity-50 transition-all cursor-pointer"
+                              >
+                                <option value="2019">2019 (AR Focus / 194 lines)</option>
+                                <option value="2020">2020 (AP Focus / 45 lines)</option>
+                                <option value="2018">2018 (Legacy / 5 lines)</option>
+                              </select>
+                            </div>
+
+                            <div className="space-y-1">
+                              <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
+                                Open Items Only (AUGDT)
+                              </label>
+                              <select
+                                value={clearingStatus}
+                                onChange={(e) => setClearingStatus(e.target.value)}
+                                disabled={isExtractingLive}
+                                className="w-full px-2 py-1.5 text-[10.5px] font-mono bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:opacity-50 transition-all cursor-pointer"
+                              >
+                                <option value="open">AUGDT eq null (Unpaid)</option>
+                                <option value="cleared">AUGDT ne null (Cleared)</option>
+                                <option value="all">All Postings (Full Audit)</option>
+                              </select>
+                            </div>
+
+                            <div className="space-y-1">
+                              <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
+                                Records Page Limit ($top)
+                              </label>
+                              <select
+                                value={topLimit}
+                                onChange={(e) => setTopLimit(e.target.value)}
+                                disabled={isExtractingLive}
+                                className="w-full px-2 py-1.5 text-[10.5px] font-mono bg-white dark:bg-slate-950/40 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:opacity-50 transition-all cursor-pointer"
+                              >
+                                <option value="all">No Page Limit ($top = full)</option>
+                                <option value="100">100 Rows ($top = 100)</option>
+                                <option value="5">5 Rows (Quick Pitch)</option>
+                              </select>
+                            </div>
+                          </>
+                        )}
                       </div>
 
                       <div className="space-y-2.5 p-3 bg-slate-50 dark:bg-black/30 border border-slate-200/50 dark:border-white/5 rounded-2xl font-mono text-[10px]">
                         <div className="flex justify-between">
                           <span className="text-slate-400">Target URL:</span>
-                          <span className="text-cyan-600 dark:text-cyan-400 font-bold max-w-[200px] truncate" title={`/sap/opu/odata/sap/${activeScenario.readPath}?$filter=(CompanyCode eq '${companyCode}') and (FiscalYear eq '${fiscalYear}')${clearingStatus === "open" ? " and (ClearingDate eq null)" : clearingStatus === "cleared" ? " and (ClearingDate ne null)" : ""}${topLimit !== "all" ? `&$top=${topLimit}` : ""}`}>
-                            /sap/opu/odata/sap/{activeScenario.readPath.split('/')[0]}
-                          </span>
+                          {(() => {
+                            let path = activeScenario.readPath || "API_GLACCOUNTLINEITEM/GLAccountLineItem";
+                            let query = `?$filter=(CompanyCode eq '${companyCode}') and (FiscalYear eq '${fiscalYear}')${clearingStatus === "open" ? " and (ClearingDate eq null)" : clearingStatus === "cleared" ? " and (ClearingDate ne null)" : ""}${topLimit !== "all" ? `&$top=${topLimit}` : ""}`;
+                            
+                            if (activeScenarioId === "ap-ar-optimization") {
+                              if (wcDocScope === "orders") {
+                                path = "API_PURCHASEORDER_PROCESS_SRV/A_PurchaseOrder";
+                                query = `?$filter=(CompanyCode eq '${companyCode}') and (OrderValue ge ${minOrderValue})${topLimit !== "all" ? `&$top=${topLimit}` : ""}`;
+                              } else if (wcDocScope === "sales") {
+                                path = "API_SALES_ORDER_SRV/A_SalesOrder";
+                                query = `?$filter=(CompanyCode eq '${companyCode}') and (OverallBillingStatus ne 'C')${topLimit !== "all" ? `&$top=${topLimit}` : ""}`;
+                              } else {
+                                path = "API_GLACCOUNTLINEITEM/GLAccountLineItem";
+                                query = `?$filter=(CompanyCode eq '${companyCode}') and (ClearingDate eq null)${topLimit !== "all" ? `&$top=${topLimit}` : ""}`;
+                              }
+                            } else if (activeScenarioId === "duplicate-payments") {
+                              path = "API_OPERATIONAL_AP_SRV/BSIK_OpenItems";
+                              query = `?$filter=(CompanyCode eq '${companyCode}') and (ClearingDate eq null) and (SimilarityMatch ge ${duplicateThreshold}%)${topLimit !== "all" ? `&$top=${topLimit}` : ""}`;
+                            } else if (activeScenarioId === "tax-lookback") {
+                              if (taxDocScope === "purchasing") {
+                                path = "API_INVOICERECEIPT_PROCESS_SRV/A_SupplierInvoice";
+                                query = `?$filter=(CompanyCode eq '${companyCode}') and (TaxAmount ge 0)${taxCodeFilter !== "all" ? ` and (TaxCode eq '${taxCodeFilter}')` : ""}${topLimit !== "all" ? `&$top=${topLimit}` : ""}`;
+                              } else {
+                                path = "CB_BILLING_DOCUMENT_SRV/BillingDocuments";
+                                query = `?$filter=(CompanyCode eq '${companyCode}') and (BillingDocumentType eq 'F2')${taxCodeFilter !== "all" ? ` and (TaxClassification eq '${taxCodeFilter}')` : ""}${topLimit !== "all" ? `&$top=${topLimit}` : ""}`;
+                              }
+                            }
+                            
+                            const fullUrl = `/sap/opu/odata/sap/${path}${query}`;
+                            return (
+                              <span className="text-cyan-600 dark:text-cyan-400 font-bold max-w-[200px] truncate" title={fullUrl}>
+                                /sap/opu/odata/sap/{path.split('/')[0]}
+                              </span>
+                            );
+                          })()}
                         </div>
                         <div className="flex justify-between">
                           <span className="text-slate-400">Estimated Scope:</span>
                           <span className="text-slate-700 dark:text-slate-300 font-bold">
                             {(() => {
                               let count = 0;
-                              if (fiscalYear === "2019") {
-                                count = activeScenarioId === "duplicate-payments" ? 17 : 194;
-                              } else if (fiscalYear === "2020") {
-                                count = 45;
+                              if (activeScenarioId === "ap-ar-optimization") {
+                                if (wcDocScope === "orders") {
+                                  count = minOrderValue >= 100000 ? 12 : minOrderValue >= 50000 ? 32 : 84;
+                                } else if (wcDocScope === "sales") {
+                                  count = 68;
+                                } else {
+                                  count = companyCode === "1710" ? 194 : companyCode === "1010" ? 45 : 6;
+                                }
+                              } else if (activeScenarioId === "duplicate-payments") {
+                                count = duplicateThreshold >= 90 ? 4 : duplicateThreshold >= 85 ? 12 : 27;
+                              } else if (activeScenarioId === "tax-lookback") {
+                                if (taxDocScope === "purchasing") {
+                                  count = taxCodeFilter === "UTX1" ? 14 : taxCodeFilter === "EXE" ? 4 : 29;
+                                } else {
+                                  count = taxCodeFilter === "UTX1" ? 34 : taxCodeFilter === "EXE" ? 8 : 92;
+                                }
                               } else {
-                                count = activeScenarioId === "duplicate-payments" ? 5 : 6;
+                                if (fiscalYear === "2019") {
+                                  count = 194;
+                                } else if (fiscalYear === "2020") {
+                                  count = 45;
+                                } else {
+                                  count = 6;
+                                }
                               }
                               if (topLimit !== "all") {
                                 count = Math.min(count, parseInt(topLimit));
@@ -2012,9 +3058,11 @@ export default function ScenariosDashboard() {
                         <div className="flex justify-between">
                           <span className="text-slate-400">Active Scope:</span>
                           <span className="text-slate-700 dark:text-slate-300 font-bold font-mono">
-                            {activeScenario.stakeholder === "Procurement & Supply Chain" 
-                              ? `POrg: ${purchaseOrg} | Plant: ${plantCode}`
-                              : `Company Code: ${companyCode}`}
+                            {activeScenarioId === "tax-lookback"
+                              ? `Tax: ${taxCodeFilter.toUpperCase()} | Scope: ${taxDocScope.toUpperCase()}`
+                              : activeScenario.stakeholder === "Procurement & Supply Chain" 
+                                ? `POrg: ${purchaseOrg} | Plant: ${plantCode}`
+                                : `Company Code: ${companyCode}`}
                           </span>
                         </div>
                         <div className="flex justify-between items-center pt-1 border-t border-slate-200 dark:border-white/5">
@@ -2106,7 +3154,13 @@ export default function ScenariosDashboard() {
                         <span className="text-slate-900 dark:text-white text-lg font-extrabold font-mono">
                           {(() => {
                             let count = 0;
-                            if (fiscalYear === "2019") {
+                            if (activeScenarioId === "tax-lookback") {
+                              if (taxDocScope === "purchasing") {
+                                count = taxCodeFilter === "UTX1" ? 14 : taxCodeFilter === "EXE" ? 4 : 29;
+                              } else {
+                                count = taxCodeFilter === "UTX1" ? 34 : taxCodeFilter === "EXE" ? 8 : 92;
+                              }
+                            } else if (fiscalYear === "2019") {
                               count = activeScenarioId === "duplicate-payments" ? 17 : 194;
                             } else if (fiscalYear === "2020") {
                               count = 45;
@@ -2119,7 +3173,11 @@ export default function ScenariosDashboard() {
                             return `${count.toLocaleString()} Items`;
                           })()}
                         </span>
-                        <span className="text-[9.5px] text-slate-400 font-light">({clearingStatus === "open" ? "Open items" : clearingStatus === "cleared" ? "Cleared items" : "Full Year"})</span>
+                        <span className="text-[9.5px] text-slate-400 font-light">
+                          ({activeScenarioId === "tax-lookback" 
+                            ? "Exemption & Rate Audit" 
+                            : clearingStatus === "open" ? "Open items" : clearingStatus === "cleared" ? "Cleared items" : "Full Year"})
+                        </span>
                       </div>
                     </div>
                     <div className="space-y-1 border-t sm:border-t-0 sm:border-l border-slate-200 dark:border-white/5 pt-3 sm:pt-0 sm:pl-4 font-sans">
@@ -2128,7 +3186,9 @@ export default function ScenariosDashboard() {
                         <span className="text-emerald-600 dark:text-emerald-400 text-lg font-extrabold font-mono">
                           {(() => {
                             let amount = 0;
-                            if (activeScenarioId === "duplicate-payments") {
+                            if (activeScenarioId === "tax-lookback") {
+                              amount = taxDocScope === "purchasing" ? 480000 : 1240000;
+                            } else if (activeScenarioId === "duplicate-payments") {
                               const base = fiscalYear === "2019" ? 475000 : fiscalYear === "2020" ? 640000 : 310000;
                               amount = topLimit === "5" ? 320000 : base;
                             } else {
@@ -2145,9 +3205,15 @@ export default function ScenariosDashboard() {
                       <span className="text-[9px] text-slate-500 font-mono font-bold uppercase tracking-wider block">Active OData Filters</span>
                       <div className="flex items-baseline gap-2">
                         <span className="text-cyan-600 dark:text-cyan-400 text-lg font-extrabold font-mono">
-                          GJAHR = {fiscalYear}
+                          {activeScenarioId === "tax-lookback" 
+                            ? `JURIS = ${taxCodeFilter.toUpperCase()}`
+                            : `GJAHR = ${fiscalYear}`}
                         </span>
-                        <span className="text-[9.5px] text-slate-400 font-light">(Limit: {topLimit === "all" ? "None" : `$top=${topLimit}`})</span>
+                        <span className="text-[9.5px] text-slate-400 font-light">
+                          {activeScenarioId === "tax-lookback"
+                            ? `(${taxDocScope.toUpperCase()})`
+                            : `(Limit: ${topLimit === "all" ? "None" : `$top=${topLimit}`})`}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -2212,6 +3278,24 @@ export default function ScenariosDashboard() {
                               </tr>
                             );
                           })
+                        ) : activeScenarioId === "tax-lookback" ? (
+                          (taxItems.length > 0 ? taxItems : INITIAL_TAX_ITEMS).map((row: any, idx: number) => (
+                            <tr 
+                              key={idx} 
+                              onClick={() => setSelectedInvoice(row)}
+                              className="hover:bg-slate-200/80 dark:hover:bg-white/5 transition-colors font-mono cursor-pointer group"
+                            >
+                              <td className="p-3 pl-4 text-slate-900 dark:text-white font-bold flex items-center gap-1.5">
+                                <Eye className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 text-cyan-500 transition-opacity shrink-0" />
+                                {row.doc}
+                              </td>
+                              <td className="p-3 text-slate-600 dark:text-slate-350">{row.customerName}</td>
+                              <td className="p-3 text-slate-600 dark:text-slate-450">{row.soldToRegion}</td>
+                              <td className="p-3 text-slate-600 dark:text-slate-455">{row.shipToRegion}</td>
+                              <td className="p-3 text-slate-500 font-semibold">{row.taxBilledRate.toFixed(2)}% (${row.taxBilledAmount.toFixed(2)})</td>
+                              <td className="p-3 text-emerald-600 dark:text-emerald-450 font-bold">{row.taxCorrectRate.toFixed(2)}% (${row.taxCorrectAmount.toFixed(2)})</td>
+                            </tr>
+                          ))
                         ) : (
                           activeScenario.readRecords.map((row: any, idx: number) => (
                             <tr 
@@ -2572,59 +3656,423 @@ export default function ScenariosDashboard() {
                 </div>
               )}
 
-              {/* SCENARIO 4: CROSS-BORDER TAX address variance grid */}
+              {/* SCENARIO 4: CROSS-BORDER TAX address variance grid & OCR split-pane visualizer */}
               {activeScenario.visualizerType === "tax" && (
-                <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 flex flex-col justify-between min-h-[250px] space-y-4">
-                  <div className="flex justify-between items-center text-[10px]">
-                    <span className="font-bold text-slate-800 dark:text-slate-300">Partner Location Shipping (Ship-To) vs Billing (Sold-To) region auditing</span>
-                    <span className="text-amber-600 dark:text-amber-400 font-bold">[CA Mismatch detected]</span>
+                <div className="flex flex-col space-y-6 w-full animate-in fade-in duration-300">
+                  
+                  {/* Premium Financial Overview & CSS Comparison Chart */}
+                  {(() => {
+                    const itemsToAnalyze = taxItems.length > 0 ? taxItems : INITIAL_TAX_ITEMS;
+                    const totalAuditedVolume = itemsToAnalyze.reduce((acc, item) => acc + item.netValue, 0);
+                    const reclaimableRefund = itemsToAnalyze.reduce((acc, item) => {
+                      const diff = item.taxBilledAmount - item.taxCorrectAmount;
+                      return acc + (diff > 0 ? diff : 0);
+                    }, 0);
+                    
+                    const resolvedSavings = itemsToAnalyze.reduce((acc, item) => {
+                      if (item.status === "Resolved") {
+                        const initialItem = INITIAL_TAX_ITEMS.find(i => i.doc === item.doc);
+                        if (initialItem) {
+                          const initialOverbill = initialItem.taxBilledAmount - initialItem.taxCorrectAmount;
+                          return acc + (initialOverbill > 0 ? initialOverbill : 0);
+                        }
+                      }
+                      return acc;
+                    }, 0);
+
+                    const preventedLeakageProjection = resolvedSavings > 0 ? resolvedSavings * 12 : 24500.00;
+
+                    return (
+                      <div className="space-y-6 font-sans">
+                        {/* Premium Stats Grid */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                          {/* Card 1: Audited Billing Volume */}
+                          <div className="bg-gradient-to-br from-white to-slate-50 dark:from-slate-900/60 dark:to-slate-900/10 border border-slate-205 dark:border-white/10 p-6 rounded-3xl shadow-sm flex items-center justify-between border-l-4 border-l-cyan-500 hover:shadow-md transition-all">
+                            <div>
+                              <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-widest font-extrabold block">
+                                Audited Billing Volume
+                              </span>
+                              <h4 className="text-2xl font-mono font-black text-slate-800 dark:text-white mt-1">
+                                ${totalAuditedVolume.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </h4>
+                              <span className="text-[10px] text-slate-400 dark:text-slate-500 block mt-1">
+                                S/4HANA VBRK/VBRP index scope
+                              </span>
+                            </div>
+                            <div className="bg-cyan-500/10 p-3 rounded-2xl">
+                              <Database className="w-6 h-6 text-cyan-600 dark:text-cyan-400" />
+                            </div>
+                          </div>
+
+                          {/* Card 2: Reclaimable Tax Refund (Historical Savings) */}
+                          <div className="bg-gradient-to-br from-white to-slate-50 dark:from-slate-900/60 dark:to-slate-900/10 border border-slate-205 dark:border-white/10 p-6 rounded-3xl shadow-sm flex items-center justify-between border-l-4 border-l-emerald-500 hover:shadow-md transition-all relative overflow-hidden">
+                            <div className="absolute -top-6 -right-6 w-20 h-20 bg-emerald-500/5 rounded-full pointer-events-none" />
+                            <div>
+                              <span className="text-[10px] text-emerald-600 dark:text-emerald-455 uppercase tracking-widest font-extrabold block flex items-center gap-1.5 font-sans">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                Reclaimable Tax Refund
+                              </span>
+                              <h4 className="text-2xl font-mono font-black text-emerald-600 dark:text-emerald-400 mt-1">
+                                ${reclaimableRefund.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </h4>
+                              <span className="text-[10px] text-slate-400 dark:text-slate-500 block mt-1">
+                                Overbilled out-of-state exemption
+                              </span>
+                            </div>
+                            <div className="bg-emerald-500/10 p-3 rounded-2xl">
+                              <TrendingUp className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+                            </div>
+                          </div>
+
+                          {/* Card 3: Mitigated Leakage Risk (Annualized Projections) */}
+                          <div className="bg-gradient-to-br from-white to-slate-50 dark:from-slate-900/60 dark:to-slate-900/10 border border-slate-205 dark:border-white/10 p-6 rounded-3xl shadow-sm flex items-center justify-between border-l-4 border-l-amber-500 hover:shadow-md transition-all">
+                            <div>
+                              <span className="text-[10px] text-amber-600 dark:text-amber-550 uppercase tracking-widest font-extrabold block">
+                                Prevented Annual Leakage
+                              </span>
+                              <h4 className="text-2xl font-mono font-black text-slate-800 dark:text-white mt-1">
+                                ${preventedLeakageProjection.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                              </h4>
+                              <span className="text-[10px] text-slate-400 dark:text-slate-500 block mt-1 font-sans">
+                                locked-in S/4HANA partner rules
+                              </span>
+                            </div>
+                            <div className="bg-amber-500/10 p-3 rounded-2xl">
+                              <ShieldCheck className="w-6 h-6 text-amber-600 dark:text-amber-450" />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Comparative Visual Bar Chart */}
+                        <div className="bg-gradient-to-b from-white to-slate-50 dark:from-slate-955/40 dark:to-slate-900/20 border border-slate-200 dark:border-white/5 rounded-3xl p-6 shadow-xl space-y-4">
+                          <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 border-b border-slate-200 dark:border-white/5 pb-4">
+                            <div>
+                              <h3 className="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                                <BarChart2 className="w-4.5 h-4.5 text-emerald-500" />
+                                Tax Discrepancy Analysis (Billed vs. Correct)
+                              </h3>
+                              <p className="text-[10.5px] text-slate-400 dark:text-slate-500 mt-0.5 font-sans">
+                                Comparison of S/4HANA Universal Ledger postings versus verified physical OCR warehouses.
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-4 text-[10px] font-bold">
+                              <div className="flex items-center gap-1.5">
+                                <div className="w-2.5 h-2.5 rounded bg-rose-500/80" />
+                                <span className="text-slate-500">Billed Tax</span>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <div className="w-2.5 h-2.5 rounded bg-emerald-500" />
+                                <span className="text-slate-500">Correct Tax (Saved)</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* CSS Charts */}
+                          <div className="space-y-4 font-mono text-[11px]">
+                            {itemsToAnalyze.map((item: any) => {
+                              const refund = item.taxBilledAmount - item.taxCorrectAmount;
+                              const isOverbilled = refund > 0;
+                              const savingsPercent = isOverbilled ? Math.round((refund / item.taxBilledAmount) * 100) : 0;
+                              
+                              // Scale bars relatively (max value is Sovereign 90001092 billed $7321.88)
+                              const maxBilled = 7321.88;
+                              const billedBarWidth = Math.max(10, Math.min(100, (item.taxBilledAmount / maxBilled) * 100));
+                              const correctBarWidth = Math.max(0, Math.min(100, (item.taxCorrectAmount / maxBilled) * 100));
+
+                              return (
+                                <div key={item.doc} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center hover:bg-slate-100/30 dark:hover:bg-white/5 p-2 rounded-2xl transition-colors">
+                                  {/* Document Label */}
+                                  <div className="md:col-span-3 flex items-center justify-between md:justify-start gap-2">
+                                    <span className="font-bold text-slate-700 dark:text-slate-350">Doc {item.doc}</span>
+                                    <span className="text-[10px] font-sans px-2 py-0.5 rounded-full bg-slate-200/50 dark:bg-white/5 text-slate-400">
+                                      {item.customerName.split(' ')[0]}
+                                    </span>
+                                  </div>
+
+                                  {/* Visual Comparison Bars */}
+                                  <div className="md:col-span-6 space-y-1.5">
+                                    {/* Billed Bar */}
+                                    <div className="flex items-center gap-2">
+                                      <div className="w-full bg-slate-100 dark:bg-black/30 h-2.5 rounded-full overflow-hidden">
+                                        <div 
+                                          className="bg-rose-500/80 h-full rounded-full transition-all duration-500"
+                                          style={{ width: `${billedBarWidth}%` }}
+                                        />
+                                      </div>
+                                      <span className="text-[10px] text-rose-550 font-bold shrink-0 w-16 text-right">
+                                        ${item.taxBilledAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                      </span>
+                                    </div>
+                                    
+                                    {/* Correct Bar */}
+                                    <div className="flex items-center gap-2">
+                                      <div className="w-full bg-slate-100 dark:bg-black/30 h-2.5 rounded-full overflow-hidden">
+                                        <div 
+                                          className="bg-emerald-500 h-full rounded-full transition-all duration-500"
+                                          style={{ width: `${correctBarWidth}%` }}
+                                        />
+                                      </div>
+                                      <span className="text-[10px] text-emerald-555 font-bold shrink-0 w-16 text-right">
+                                        ${item.taxCorrectAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  {/* Savings / Results Badge */}
+                                  <div className="md:col-span-3 text-right">
+                                    {isOverbilled ? (
+                                      <span className="px-2.5 py-1 rounded-xl bg-emerald-500/10 text-emerald-500 text-[10px] font-bold font-sans inline-flex items-center gap-1">
+                                        <TrendingUp className="w-3.5 h-3.5" />
+                                        Save {savingsPercent}% (${refund.toLocaleString(undefined, { minimumFractionDigits: 2 })})
+                                      </span>
+                                    ) : (
+                                      <span className="px-2.5 py-1 rounded-xl bg-slate-200/50 dark:bg-white/5 text-slate-400 text-[10px] font-bold font-sans inline-block">
+                                        0% Variance
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Document Selection Tabs */}
+                  <div className="flex flex-wrap items-center gap-2 bg-slate-100 dark:bg-black/30 p-2.5 rounded-2xl border border-slate-200 dark:border-white/5 font-sans">
+                    <span className="text-[9px] font-extrabold text-slate-500 uppercase tracking-widest px-2">
+                      In-Scope Invoices:
+                    </span>
+                    {(taxItems.length > 0 ? taxItems : INITIAL_TAX_ITEMS).map((item: any) => {
+                      const isSelected = selectedTaxDoc?.doc === item.doc;
+                      const isFlagged = item.status === "Flagged";
+                      return (
+                        <button
+                          key={item.doc}
+                          onClick={() => setSelectedTaxDoc(item)}
+                          className={clsx(
+                            "px-3.5 py-1.5 rounded-xl text-xs font-mono font-bold flex items-center gap-2 transition-all select-none cursor-pointer border",
+                            isSelected
+                              ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900 border-transparent shadow-md scale-105"
+                              : "bg-white dark:bg-slate-950/40 text-slate-650 dark:text-slate-350 border-slate-200 dark:border-white/5 hover:bg-slate-150 dark:hover:bg-slate-900/60"
+                          )}
+                        >
+                          <span>Doc {item.doc}</span>
+                          <span className={clsx(
+                            "w-2 h-2 rounded-full",
+                            isFlagged ? "bg-rose-500 animate-pulse" : "bg-emerald-500"
+                          )} />
+                        </button>
+                      );
+                    })}
                   </div>
 
-                  <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Invoice 1 Card */}
-                    <div className="p-4 bg-slate-100 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 rounded-2xl flex flex-col justify-between text-xs font-mono space-y-2">
-                      <div className="flex justify-between items-center">
-                        <span className="text-slate-500 font-bold text-[9px] uppercase">SAP Sales Document: 90001048</span>
-                        <span className="px-2 py-0.5 rounded bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 text-[9px] font-bold uppercase">Variance</span>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2 text-[10.5px] py-1 border-t border-b border-slate-200 dark:border-slate-800">
-                        <div>
-                          <span className="text-slate-500 block text-[8px] uppercase">Sold-To Address</span>
-                          <span className="text-slate-900 dark:text-white font-bold">California (CA)</span>
-                        </div>
-                        <div>
-                          <span className="text-slate-500 block text-[8px] uppercase">Ship-To Destination</span>
-                          <span className="text-slate-900 dark:text-white font-bold">Oregon (OR)</span>
-                        </div>
-                      </div>
-                      <div className="flex justify-between text-[11px]">
-                        <span className="text-slate-600 dark:text-slate-400">Billed: <strong className="text-rose-600 dark:text-rose-400">8.25% CA Tax</strong></span>
-                        <span className="text-emerald-600 dark:text-emerald-400 font-bold">Correct: 0.00% (OR exempt)</span>
-                      </div>
-                    </div>
+                  {/* Selected Document Details Split-Pane */}
+                  {selectedTaxDoc && (() => {
+                    const isFlagged = selectedTaxDoc.status === "Flagged";
+                    const refundOpportunity = selectedTaxDoc.taxBilledAmount - selectedTaxDoc.taxCorrectAmount;
+                    
+                    return (
+                      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+                        
+                        {/* Left Column: Scanned PDF Invoice Viewer (OCR Extraction) */}
+                        <div className="lg:col-span-6 flex flex-col justify-between bg-gradient-to-b from-white to-slate-50 dark:from-slate-950/80 dark:to-slate-900/40 border border-slate-200 dark:border-white/10 rounded-3xl p-6 shadow-xl relative overflow-hidden">
+                          {/* Premium Invoice watermark */}
+                          <div className="absolute top-4 right-4 opacity-15 text-slate-400 dark:text-slate-600 font-mono text-[9px] uppercase font-bold tracking-widest border border-dashed border-slate-300 dark:border-slate-700 px-2 py-0.5 rounded">
+                            PDF / OCR Ingest
+                          </div>
+                          
+                          <div className="space-y-4">
+                            <div className="border-b border-slate-200 dark:border-slate-800 pb-3">
+                              <span className="text-[8.5px] font-mono font-extrabold text-cyan-600 dark:text-cyan-400 uppercase tracking-wider block">
+                                Scanned Physical Document
+                              </span>
+                              <h3 className="text-sm font-bold text-slate-800 dark:text-white mt-1">
+                                {selectedTaxDoc.customerName}
+                              </h3>
+                              <span className="text-[10px] text-slate-400 font-mono block">Inv Ref: Invoice_Copy_{selectedTaxDoc.doc}.pdf</span>
+                            </div>
 
-                    {/* Invoice 2 Card */}
-                    <div className="p-4 bg-slate-100 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 rounded-2xl flex flex-col justify-between text-xs font-mono space-y-2">
-                      <div className="flex justify-between items-center">
-                        <span className="text-slate-500 font-bold text-[9px] uppercase">SAP Sales Document: 90001092</span>
-                        <span className="px-2 py-0.5 rounded bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 text-[9px] font-bold uppercase">Variance</span>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2 text-[10.5px] py-1 border-t border-b border-slate-200 dark:border-slate-800">
-                        <div>
-                          <span className="text-slate-500 block text-[8px] uppercase">Sold-To Address</span>
-                          <span className="text-slate-900 dark:text-white font-bold">Texas (TX)</span>
+                            {/* Simulated OCR Invoice Layout */}
+                            <div className="p-4 bg-white dark:bg-black/40 border border-slate-200 dark:border-white/5 rounded-2xl text-xs font-mono space-y-3 relative shadow-inner">
+                              <div className="flex justify-between border-b border-slate-100 dark:border-slate-900 pb-1.5 text-[10px] text-slate-500">
+                                <span>INVOICE HEADER</span>
+                                <span>DATE: 2026-05-18</span>
+                              </div>
+                              <div className="grid grid-cols-2 gap-3 text-[10.5px]">
+                                <div>
+                                  <span className="text-slate-400 dark:text-slate-500 block text-[8px] uppercase">Corporate Bill-To</span>
+                                  <span className="font-bold text-slate-800 dark:text-slate-300">Horizon Retailers Inc</span>
+                                  <span className="text-slate-500 block text-[9.5px]">1200 Market St, San Francisco, CA</span>
+                                </div>
+                                <div className="bg-cyan-500/5 dark:bg-cyan-400/5 p-2 rounded-xl border border-cyan-500/20">
+                                  <span className="text-cyan-600 dark:text-cyan-400 block text-[8px] uppercase font-extrabold">Ship-To (Physical OCR)</span>
+                                  <span className="font-bold text-slate-800 dark:text-slate-250">Warehouse S07 Delivery</span>
+                                  <span className="text-cyan-600 dark:text-cyan-400 font-bold block text-[10.5px] mt-0.5 animate-pulse">
+                                    {selectedTaxDoc.shipToRegion}
+                                  </span>
+                                </div>
+                              </div>
+                              
+                              <div className="border-t border-slate-100 dark:border-slate-900 pt-2 flex justify-between items-center text-[10.5px]">
+                                <span>Net Product Subtotal:</span>
+                                <span className="font-bold">${selectedTaxDoc.netValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                              </div>
+                            </div>
+
+                            {/* Diagnostic Note */}
+                            <div className="p-3.5 bg-cyan-50 dark:bg-cyan-950/20 border border-cyan-200 dark:border-cyan-900/30 rounded-2xl text-[10.5px] leading-relaxed text-slate-700 dark:text-slate-300 font-sans">
+                              💡 **OCR Metadata Analysis:** The physical billing document scanned from the carrier shows delivery warehouse coordinates registered directly in the **{selectedTaxDoc.shipToRegion.split(' ')[0]}** region, where specific tax exemption rules apply.
+                            </div>
+                          </div>
+                          
+                          <div className="pt-4 border-t border-slate-200 dark:border-slate-850 text-[9px] text-slate-500 font-mono flex justify-between mt-4">
+                            <span>OCR Scanner: High-Accuracy Vision v4</span>
+                            <span>Match: 99.8%</span>
+                          </div>
                         </div>
-                        <div>
-                          <span className="text-slate-500 block text-[8px] uppercase">Ship-To Destination</span>
-                          <span className="text-slate-900 dark:text-white font-bold">Texas (TX)</span>
+
+                        {/* Right Column: S/4HANA ERP Ledger Invoice Record */}
+                        <div className="lg:col-span-6 flex flex-col justify-between bg-gradient-to-b from-white to-slate-50 dark:from-slate-950/80 dark:to-slate-900/40 border border-slate-200 dark:border-white/10 rounded-3xl p-6 shadow-xl relative overflow-hidden">
+                          {/* ERP watermark */}
+                          <div className="absolute top-4 right-4 opacity-15 text-slate-400 dark:text-slate-600 font-mono text-[9px] uppercase font-bold tracking-widest border border-dashed border-slate-300 dark:border-slate-700 px-2 py-0.5 rounded">
+                            S/4HANA Ledger
+                          </div>
+
+                          <div className="space-y-4">
+                            <div className="border-b border-slate-200 dark:border-slate-880 pb-3">
+                              <span className="text-[8.5px] font-mono font-extrabold text-amber-600 dark:text-amber-450 uppercase tracking-wider block">
+                                S/4HANA Active Billing Ledger
+                              </span>
+                              <h3 className="text-sm font-bold text-slate-800 dark:text-white mt-1 flex items-center gap-1.5">
+                                SAP Billing Document: <span className="font-mono text-cyan-600 dark:text-cyan-400 font-bold">{selectedTaxDoc.doc}</span>
+                              </h3>
+                              <span className="text-[10px] text-slate-400 font-mono block">Sales Order Ref: {selectedTaxDoc.salesOrder || "22"}</span>
+                            </div>
+
+                            {/* ERP Console record layout */}
+                            <div className="p-4 bg-slate-950 text-slate-250 border border-slate-850 rounded-2xl text-xs font-mono space-y-3 relative shadow-inner">
+                              <div className="flex justify-between border-b border-slate-800 pb-1.5 text-[9px] text-slate-550">
+                                <span>TABLES: VBRK / VBPA</span>
+                                <span>STATUS: Completed</span>
+                              </div>
+                              <div className="grid grid-cols-2 gap-3 text-[10.5px]">
+                                <div>
+                                  <span className="text-slate-500 block text-[8px] uppercase">Sold-To Party (BUKRS)</span>
+                                  <span className="font-bold text-slate-300">Customer: 17100001</span>
+                                  <span className="text-slate-400 block text-[9.5px]">{selectedTaxDoc.soldToRegion}</span>
+                                </div>
+                                <div className={clsx(
+                                  "p-2 rounded-xl border",
+                                  isFlagged
+                                    ? "bg-rose-500/5 border-rose-500/20 text-rose-450"
+                                    : "bg-emerald-500/5 border-emerald-500/20 text-emerald-400"
+                                )}>
+                                  <span className="text-slate-500 block text-[8px] uppercase font-bold">Ship-To Party (WE Partner)</span>
+                                  <span className="font-bold text-slate-300">AddressID: 23653</span>
+                                  <span className={clsx(
+                                    "font-black block text-[10.5px] mt-0.5",
+                                    isFlagged ? "text-rose-600 dark:text-rose-400 animate-pulse" : "text-emerald-600 dark:text-emerald-400"
+                                  )}>
+                                    {selectedTaxDoc.soldToRegion}
+                                  </span>
+                                </div>
+                              </div>
+                              
+                              <div className="border-t border-slate-800 pt-2 flex justify-between items-center text-[10.5px]">
+                                <span>Billed Sales Tax Amount:</span>
+                                <span className={clsx(
+                                  "font-bold text-xs font-mono",
+                                  isFlagged ? "text-rose-650 dark:text-rose-400" : "text-emerald-600 dark:text-emerald-450"
+                                )}>
+                                  {selectedTaxDoc.taxBilledRate.toFixed(3)}% (${selectedTaxDoc.taxBilledAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })})
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Comparison Matrix & Delta Indicator */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div className="p-3.5 bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-white/5 rounded-2xl flex flex-col justify-between shadow-sm">
+                                <span className="text-[8px] text-slate-500 uppercase font-extrabold block">Location Variance</span>
+                                <div className="flex items-center gap-1.5 mt-1 font-mono text-xs font-bold">
+                                  {isFlagged ? (
+                                    <>
+                                      <span className="px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">System CA</span>
+                                      <span>⟷</span>
+                                      <span className="px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20">Physical OR</span>
+                                    </>
+                                  ) : (
+                                    <span className="text-emerald-600 dark:text-emerald-450 flex items-center gap-1">
+                                      <Check className="w-4 h-4 stroke-[3]" /> Reconciled & Synced
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className={clsx(
+                                "p-3.5 border rounded-2xl flex flex-col justify-between shadow-sm text-left font-sans",
+                                isFlagged
+                                  ? "bg-rose-500/5 border-rose-500/20"
+                                  : "bg-emerald-500/5 border-emerald-500/20"
+                              )}>
+                                <span className="text-[8px] text-slate-500 uppercase font-extrabold block">
+                                  {isFlagged ? "Tax Refund Opportunity" : "Compliance Cleared"}
+                                </span>
+                                <span className={clsx(
+                                  "font-mono font-black text-sm md:text-base mt-1 block",
+                                  isFlagged ? "text-rose-650 dark:text-rose-400" : "text-emerald-600 dark:text-emerald-450"
+                                )}>
+                                  {isFlagged 
+                                    ? `$${refundOpportunity.toLocaleString(undefined, { minimumFractionDigits: 2 })} USD`
+                                    : "0.00% variance"
+                                  }
+                                </span>
+                              </div>
+                            </div>
+
+                          </div>
+                          
+                          <div className="pt-4 border-t border-slate-200 dark:border-slate-850 text-[9px] text-slate-500 font-mono flex justify-between mt-4">
+                            <span>Connection status: vhcals4hcs Connected</span>
+                            <span>Port: 44301 SSL</span>
+                          </div>
                         </div>
+
                       </div>
-                      <div className="flex justify-between text-[11px]">
-                        <span className="text-slate-600 dark:text-slate-400">Billed: <strong className="text-rose-600 dark:text-rose-400">6.25% TX Tax</strong></span>
-                        <span className="text-emerald-600 dark:text-emerald-400 font-bold">Correct: 6.25% TX Tax</span>
+                    );
+                  })()}
+
+                  {/* Actions Guidelines Summary Card */}
+                  {selectedTaxDoc && (
+                    <div className="p-5 bg-gradient-to-r from-emerald-500/5 to-cyan-500/5 border border-slate-200 dark:border-emerald-500/10 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 hover:border-emerald-500/20 transition-all duration-300">
+                      <div className="space-y-1">
+                        <span className="text-[9.5px] font-mono font-bold tracking-widest text-emerald-600 dark:text-emerald-400 uppercase block">
+                          Operational Resolution Path
+                        </span>
+                        <p className="text-xs text-slate-655 dark:text-slate-350 leading-relaxed font-light">
+                          {selectedTaxDoc.status === "Flagged" ? (
+                            <span>To execute the closed-loop correction, proceed to **4. Reason Policies** or **5. Execute BAPI** to adjust Sales Order partner details via OData PATCH write-back.</span>
+                          ) : (
+                            <span className="text-emerald-650 dark:text-emerald-405 font-bold flex items-center gap-1">
+                              <Check className="w-4 h-4 stroke-[3]" /> Tax Audit resolved successfully! Cryptographic proof certificate generated in Tab 6.
+                            </span>
+                          )}
+                        </p>
                       </div>
+                      
+                      {selectedTaxDoc.status === "Flagged" && (
+                        <button
+                          onClick={() => setActiveTab("reason")}
+                          className="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs rounded-xl shadow-md select-none transition-all active:scale-[0.98] cursor-pointer shrink-0"
+                        >
+                          Navigate to Policy Checkpoints ➔
+                        </button>
+                      )}
                     </div>
-                  </div>
+                  )}
+
                 </div>
               )}
 
@@ -4239,6 +5687,249 @@ export default function ScenariosDashboard() {
                   </div>
 
                 </div>
+              ) : activeScenarioId === "tax-lookback" ? (
+                /* UPGRADED TAX AUDIT REASONING COPILOT SANDBOX */
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+                  
+                  {/* Left Column: Rule Engine Control Center */}
+                  <div className="lg:col-span-5 flex flex-col justify-between bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-white/5 rounded-2xl p-5 space-y-5 shadow-sm dark:shadow-lg relative overflow-hidden backdrop-blur-sm">
+                    {/* Decorative watermark */}
+                    <div className="absolute -bottom-10 -left-10 opacity-5 dark:opacity-[0.02] text-slate-400 dark:text-white pointer-events-none select-none">
+                      <Scale className="w-36 h-36" />
+                    </div>
+
+                    <div className="space-y-4 relative z-10">
+                      <div className="flex items-center gap-2 border-b border-slate-200 dark:border-white/5 pb-2.5">
+                        <Sliders className="w-4.5 h-4.5 text-emerald-500 dark:text-emerald-400 animate-pulse" />
+                        <h4 className="text-xs font-extrabold text-slate-700 dark:text-slate-200 uppercase tracking-wider">
+                          Tax Policy Settings
+                        </h4>
+                      </div>
+
+                      {/* Rule 1: Variance Threshold Slider */}
+                      <div className="space-y-2 p-3.5 bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-white/5 rounded-xl shadow-inner">
+                        <div className="flex justify-between items-center text-[10.5px]">
+                          <span className="text-slate-600 dark:text-slate-400 font-bold">Variance Tolerance Limit:</span>
+                          <span className="text-emerald-600 dark:text-emerald-400 font-mono font-extrabold px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-xs">
+                            {taxVarianceThreshold.toFixed(1)}% Deviation
+                          </span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0.0"
+                          max="8.0"
+                          step="0.5"
+                          value={taxVarianceThreshold}
+                          onChange={(e) => setTaxVarianceThreshold(Number(e.target.value))}
+                          className="w-full h-1 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-500 dark:accent-emerald-400 focus:outline-none focus:ring-0"
+                        />
+                        <div className="flex justify-between text-[8px] text-slate-500 font-mono">
+                          <span>0.0% (Strict)</span>
+                          <span>2.0% (Optimal)</span>
+                          <span>8.0% (Coarse)</span>
+                        </div>
+                      </div>
+
+                      {/* Toggles */}
+                      <div className="space-y-2.5">
+                        <span className="text-[9px] text-slate-500 font-extrabold uppercase tracking-wider block">
+                          Tax Evaluation Policies
+                        </span>
+
+                        {/* Toggle A: Enforce Exemption Certificates */}
+                        <div className="flex justify-between items-center p-2.5 bg-white dark:bg-slate-950/40 border border-slate-200 dark:border-white/5 rounded-xl transition-all hover:bg-slate-100 dark:hover:bg-slate-950/60 shadow-sm">
+                          <div>
+                            <span className="text-[10.5px] font-bold text-slate-700 dark:text-slate-300 block">Strict Exemption Audits</span>
+                            <span className="text-[8px] text-slate-500 font-mono block">Enforce reseller certifications for CA and OR entities</span>
+                          </div>
+                          <button
+                            onClick={() => setIsEnforceExemption(!isEnforceExemption)}
+                            className={clsx(
+                              "w-9 h-5 rounded-full p-0.5 border transition-all duration-300 focus:outline-none shadow-inner shrink-0 cursor-pointer relative",
+                              isEnforceExemption 
+                                ? "bg-emerald-100 dark:bg-emerald-500/20 border-emerald-300 dark:border-emerald-500/40" 
+                                : "bg-slate-200 dark:bg-slate-800 border-slate-300 dark:border-white/5"
+                            )}
+                          >
+                            <div className={clsx(
+                              "w-3.5 h-3.5 rounded-full shadow transition-all duration-300",
+                              isEnforceExemption 
+                                ? "bg-emerald-600 dark:bg-emerald-400 translate-x-4" 
+                                : "bg-slate-500 translate-x-0"
+                            )} />
+                          </button>
+                        </div>
+
+                        {/* Toggle B: OCR Address Check */}
+                        <div className="flex justify-between items-center p-2.5 bg-white dark:bg-slate-950/40 border border-slate-200 dark:border-white/5 rounded-xl transition-all hover:bg-slate-100 dark:hover:bg-slate-950/60 shadow-sm">
+                          <div>
+                            <span className="text-[10.5px] font-bold text-slate-700 dark:text-slate-300 block">Strict Geography Validation</span>
+                            <span className="text-[8px] text-slate-500 font-mono block">Audit physical coordinates vs Sold-To state tags</span>
+                          </div>
+                          <button
+                            onClick={() => setIsExemptScan(!isExemptScan)}
+                            className={clsx(
+                              "w-9 h-5 rounded-full p-0.5 border transition-all duration-300 focus:outline-none shadow-inner shrink-0 cursor-pointer relative",
+                              isExemptScan 
+                                ? "bg-emerald-100 dark:bg-emerald-500/20 border-emerald-300 dark:border-emerald-500/40" 
+                                : "bg-slate-200 dark:bg-slate-800 border-slate-300 dark:border-white/5"
+                            )}
+                          >
+                            <div className={clsx(
+                              "w-3.5 h-3.5 rounded-full shadow transition-all duration-300",
+                              isExemptScan 
+                                ? "bg-emerald-600 dark:bg-emerald-400 translate-x-4" 
+                                : "bg-slate-500 translate-x-0"
+                            )} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right Column: AI Audit Copilot Console */}
+                  <div className="lg:col-span-7 flex flex-col justify-between space-y-4">
+                    
+                    {/* Part A: Dynamic Rules Checklist */}
+                    <div className="space-y-2">
+                      <span className="text-[9px] text-slate-500 font-extrabold uppercase tracking-wider block">
+                        Real-Time Policy Compliance Mappings
+                      </span>
+                      
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="p-3 bg-slate-100 dark:bg-slate-950/60 border border-slate-200 dark:border-white/5 rounded-xl flex items-center justify-between text-xs font-mono shadow-sm">
+                          <div className="flex items-center space-x-2">
+                            <div className="p-1 rounded-full bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0">
+                              <Check className="w-3.5 h-3.5 stroke-[3]" />
+                            </div>
+                            <div className="text-left">
+                              <span className="text-slate-500 block text-[7.5px] uppercase">OCR Extraction Status</span>
+                              <span className="text-slate-800 dark:text-white font-bold text-[10px]">ADRC Reconciled (100%)</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="p-3 bg-slate-100 dark:bg-slate-950/60 border border-slate-200 dark:border-white/5 rounded-xl flex items-center justify-between text-xs font-mono shadow-sm">
+                          <div className="flex items-center space-x-2">
+                            <div className="p-1 rounded-full bg-rose-100 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 shrink-0 animate-pulse">
+                              <ShieldAlert className="w-3.5 h-3.5" />
+                            </div>
+                            <div className="text-left">
+                              <span className="text-slate-500 block text-[7.5px] uppercase">Jurisdiction Variances</span>
+                              <span className="text-slate-800 dark:text-white font-bold text-[10px]">4 Flags Detected</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Part B: Audited Issues Categorization & Corrective Action Recommendations */}
+                    <div className="space-y-2">
+                      <span className="text-[9px] text-slate-500 font-extrabold uppercase tracking-wider block">
+                        Audited Issues & Recommended Corrective Actions
+                      </span>
+
+                      <div className="space-y-3 max-h-[220px] overflow-y-auto pr-1">
+                        
+                        {/* Issue 1: CA-OR Exemption */}
+                        <div className="p-4 bg-rose-50/70 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/30 hover:border-rose-300 dark:hover:border-rose-800/50 rounded-2xl flex items-start gap-3.5 text-xs leading-normal shadow-sm transition-all duration-200">
+                          <ShieldAlert className="w-5 h-5 text-rose-600 dark:text-rose-450 shrink-0 mt-0.5 animate-pulse" />
+                          <div className="text-left space-y-1">
+                            <span className="font-extrabold text-rose-950 dark:text-rose-250 block text-[11px]">Category: State Exemption Mismatch (CA vs OR)</span>
+                            <p className="text-slate-700 dark:text-slate-300 text-[10.5px] leading-relaxed font-sans">
+                              <strong className="text-slate-900 dark:text-white font-semibold">Identified Issue:</strong> System applied CA standard tax rate (**8.25%**) to Horizon Retailers invoices **90001641** and **90001150** based on CA billing address, but the physical Ship-To warehouse destination is situated in Oregon (**OR**) which holds a 0% tax exempt reseller status.
+                            </p>
+                            <p className="text-slate-700 dark:text-slate-300 text-[10.5px] mt-1 font-sans">
+                              <strong className="text-emerald-700 dark:text-emerald-450 font-bold">Recommended Action:</strong>
+                              <span className="block mt-0.5 pl-2 border-l border-emerald-500/20 leading-relaxed">
+                                1. Issue an OData PATCH request to open Sales Orders **SO 22** and **SO 24** to shift WE Partner region to **OR** (fixes future billing).<br/>
+                                2. File California Sales Tax Refund Claims to recover overpayments totaling **$1,994.48** (fixes past logs).
+                              </span>
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Issue 2: NY-NJ Rate Mismatch */}
+                        <div className="p-4 bg-rose-50/70 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/30 hover:border-rose-300 dark:hover:border-rose-800/50 rounded-2xl flex items-start gap-3.5 text-xs leading-normal shadow-sm transition-all duration-200">
+                          <ShieldAlert className="w-5 h-5 text-rose-600 dark:text-rose-450 shrink-0 mt-0.5 animate-pulse" />
+                          <div className="text-left space-y-1">
+                            <span className="font-extrabold text-rose-950 dark:text-rose-250 block text-[11px]">Category: Out-of-State Rate Variance (NY vs NJ)</span>
+                            <p className="text-slate-700 dark:text-slate-300 text-[10.5px] leading-relaxed font-sans">
+                              <strong className="text-slate-900 dark:text-white font-semibold">Identified Issue:</strong> System applied New York tax rate (**8.875%**) to Sovereign Distributors invoices **90001619** and **90001092** based on NY billing location, but delivery is bound to New Jersey (**NJ**) physical warehouses which carry a lower rate of **6.625%**.
+                            </p>
+                            <p className="text-slate-700 dark:text-slate-300 text-[10.5px] mt-1 font-sans">
+                              <strong className="text-emerald-700 dark:text-emerald-450 font-bold">Recommended Action:</strong>
+                              <span className="block mt-0.5 pl-2 border-l border-emerald-500/20 leading-relaxed">
+                                1. Issue an OData PATCH request to active Sales Order **SO 23** to align the WE partner region with the actual **NJ** shipment destination.<br/>
+                                2. Deduct/refund the **2.25% variance** on historical bookings to recover **$1,860.99** in tax leakage.
+                              </span>
+                            </p>
+                          </div>
+                        </div>
+
+                      </div>
+                    </div>
+
+                    {/* Part C: Explicit User Agreement Form & Release Trigger */}
+                    <div className="p-4 bg-slate-100/80 dark:bg-black/30 border border-slate-200 dark:border-white/5 rounded-2xl space-y-3">
+                      <div className="flex flex-col text-left space-y-2 text-[10.5px]">
+                        <span className="text-[9px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest block">
+                          Audit Policy & Action Agreements
+                        </span>
+                        
+                        {/* Checkbox A */}
+                        <label className="flex items-start gap-2.5 cursor-pointer select-none">
+                          <input 
+                            type="checkbox"
+                            checked={taxAgreement1}
+                            onChange={(e) => setTaxAgreement1(e.target.checked)}
+                            className="w-4 h-4 rounded border-slate-300 dark:border-white/10 text-emerald-500 accent-emerald-500 focus:ring-0 focus:outline-none mt-0.5 cursor-pointer"
+                          />
+                          <span className="text-slate-700 dark:text-slate-300 font-sans leading-normal">
+                            I agree to dispatch live OData partner address corrections to open Sales Orders **SO 22, SO 23, and SO 24** to lock correct rates.
+                          </span>
+                        </label>
+
+                        {/* Checkbox B */}
+                        <label className="flex items-start gap-2.5 cursor-pointer select-none">
+                          <input 
+                            type="checkbox"
+                            checked={taxAgreement2}
+                            onChange={(e) => setTaxAgreement2(e.target.checked)}
+                            className="w-4 h-4 rounded border-slate-300 dark:border-white/10 text-emerald-500 accent-emerald-500 focus:ring-0 focus:outline-none mt-0.5 cursor-pointer"
+                          />
+                          <span className="text-slate-700 dark:text-slate-300 font-sans leading-normal">
+                            I agree to authorize the preparation of tax refund filing certifications for the **$3,855.47** in historical cash overpayments.
+                          </span>
+                        </label>
+                      </div>
+
+                      {/* Approval Commit Action Button */}
+                      <div className="border-t border-slate-200 dark:border-white/5 pt-3 flex justify-between items-center gap-3">
+                        <div className="flex items-start gap-1 text-[9.5px] text-slate-400">
+                          <Info className="w-3.5 h-3.5 text-cyan-500 shrink-0 mt-0.5" />
+                          <span>Check both items to approve and proceed to the commit console.</span>
+                        </div>
+                        <button
+                          onClick={() => {
+                            setApprovalState(prev => ({ ...prev, [activeScenario.id]: "signed" }));
+                            setActiveTab("execute");
+                          }}
+                          disabled={!taxAgreement1 || !taxAgreement2}
+                          className={clsx(
+                            "px-4.5 py-2.5 rounded-xl text-xs font-extrabold transition-all duration-200 active:scale-[0.97] flex items-center gap-1.5 select-none shrink-0 cursor-pointer border border-transparent shadow",
+                            taxAgreement1 && taxAgreement2
+                              ? "bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-[0_0_12px_rgba(16,185,129,0.3)]"
+                              : "bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border border-slate-300/30 dark:border-white/5 cursor-not-allowed"
+                          )}
+                        >
+                          Approve Actions & Commit <ArrowRight className="w-3.5 h-3.5 stroke-[2.5]" />
+                        </button>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
               ) : (
                 /* STANDARDIZED SIMPLE RULES CHECKLIST FOR OTHER SCENARIOS */
                 <div className="space-y-3">
@@ -4533,253 +6224,602 @@ export default function ScenariosDashboard() {
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-3xl overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200 flex flex-col max-h-[90vh]">
             
             {/* Modal Top Bar */}
-            <div className="bg-slate-100 dark:bg-slate-950 px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center shrink-0">
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-mono font-bold tracking-widest px-2 py-0.5 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 uppercase shrink-0">
-                  SAP Fiori
-                </span>
-                <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 font-mono">
-                  Display Document: Journal Entry {docDetails.docNum}
-                </h3>
+            <div className="bg-slate-100 dark:bg-slate-950 px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shrink-0">
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] font-mono font-bold tracking-widest px-2 py-0.5 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 uppercase shrink-0">
+                    SAP Fiori
+                  </span>
+                  <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 font-mono">
+                    Document {docDetails.docNum}
+                  </h3>
+                </div>
+
+                {/* View Mode Toggle Buttons */}
+                <div className="flex bg-slate-200/80 dark:bg-white/5 p-0.5 rounded-lg border border-slate-300/60 dark:border-white/10 shrink-0 font-mono text-[9px] font-bold">
+                  <button
+                    onClick={() => setSelectedViewMode("fiori")}
+                    className={clsx(
+                      "px-2.5 py-1 rounded transition-all cursor-pointer select-none",
+                      selectedViewMode === "fiori"
+                        ? "bg-white dark:bg-white/10 text-slate-900 dark:text-white shadow-sm"
+                        : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-350"
+                    )}
+                  >
+                    SAP JOURNAL (FB03)
+                  </button>
+                  <button
+                    onClick={() => setSelectedViewMode("pdf")}
+                    className={clsx(
+                      "px-2.5 py-1 rounded transition-all cursor-pointer flex items-center gap-1 select-none",
+                      selectedViewMode === "pdf"
+                        ? "bg-emerald-500 text-slate-950 shadow-sm font-extrabold"
+                        : "text-slate-500 dark:text-slate-450 hover:text-slate-700 dark:hover:text-slate-350"
+                    )}
+                  >
+                    <FileText className="w-2.5 h-2.5" />
+                    PDF INVOICE SCAN
+                  </button>
+                </div>
               </div>
               <button 
                 onClick={() => setSelectedInvoice(null)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors text-xs font-mono font-extrabold px-3 py-1 bg-slate-200/50 dark:bg-white/5 rounded-lg border border-slate-300/40 dark:border-white/10 cursor-pointer"
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors text-xs font-mono font-extrabold px-3 py-1 bg-slate-200/50 dark:bg-white/5 rounded-lg border border-slate-300/40 dark:border-white/10 cursor-pointer self-end sm:self-auto"
               >
                 ✕ Close
               </button>
             </div>
 
             {/* Modal Body */}
-            <div className="p-6 overflow-y-auto space-y-6 flex-grow">
+            <div className="p-6 overflow-y-auto space-y-6 flex-grow bg-slate-50/50 dark:bg-slate-950/20">
               
-              {/* Document Header details grid */}
-              <div className="bg-slate-50 dark:bg-black/30 border border-slate-200 dark:border-white/5 rounded-2xl p-5 space-y-4">
-                <h4 className="text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
-                  Document Header (BSEG / BKPF Records)
-                </h4>
-                
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs font-mono">
-                  <div className="space-y-1">
-                    <span className="text-[9px] text-slate-400 dark:text-slate-500 block uppercase">Document Number</span>
-                    <span className="text-slate-900 dark:text-white font-extrabold">{docDetails.docNum}</span>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-[9px] text-slate-400 dark:text-slate-500 block uppercase">Company Code</span>
-                    <span className="text-slate-900 dark:text-white font-extrabold">{docDetails.companyCode}</span>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-[9px] text-slate-400 dark:text-slate-500 block uppercase">Fiscal Year</span>
-                    <span className="text-slate-900 dark:text-white font-extrabold">{docDetails.fiscalYear}</span>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-[9px] text-slate-400 dark:text-slate-500 block uppercase">Ledger Period</span>
-                    <span className="text-slate-900 dark:text-white font-extrabold">{docDetails.period}</span>
-                  </div>
+              {selectedViewMode === "pdf" ? (
+                /* PDF INVOICE PREVIEW DISPLAY */
+                <div className="space-y-6 animate-in fade-in duration-300">
                   
-                  <div className="space-y-1 pt-2 border-t border-slate-200 dark:border-white/5">
-                    <span className="text-[9px] text-slate-400 dark:text-slate-500 block uppercase">Document Date</span>
-                    <span className="text-slate-900 dark:text-white font-bold">{docDetails.docDate}</span>
-                  </div>
-                  <div className="space-y-1 pt-2 border-t border-slate-200 dark:border-white/5">
-                    <span className="text-[9px] text-slate-400 dark:text-slate-500 block uppercase">Posting Date</span>
-                    <span className="text-slate-900 dark:text-white font-bold">{docDetails.postingDate}</span>
-                  </div>
-                  <div className="space-y-1 pt-2 border-t border-slate-200 dark:border-white/5">
-                    <span className="text-[9px] text-slate-400 dark:text-slate-500 block uppercase">Document Type</span>
-                    <span className="text-slate-900 dark:text-white font-bold">{docDetails.docType} ({docDetails.docTypeDesc})</span>
-                  </div>
-                  <div className="space-y-1 pt-2 border-t border-slate-200 dark:border-white/5">
-                    <span className="text-[9px] text-slate-400 dark:text-slate-500 block uppercase">Reference Key</span>
-                    <span className="text-cyan-600 dark:text-cyan-400 font-bold">{docDetails.reference}</span>
-                  </div>
-                </div>
-
-                {/* SAP GUI Lookup Integration */}
-                <div className="pt-4 border-t border-slate-200/60 dark:border-white/5 flex flex-col md:flex-row justify-between items-start md:items-center gap-3 text-[10.5px]">
-                  <div className="flex items-center gap-1.5 font-sans">
-                    <span className="px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-mono font-bold text-[9px] uppercase shrink-0">
-                      SAP GUI
-                    </span>
-                    <span className="text-slate-600 dark:text-slate-400 font-medium">
-                      To locate this item in standard SAP desktop graphical interface:
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap gap-2 font-mono text-[9.5px]">
-                    <span className="px-2.5 py-0.5 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 font-extrabold">
-                      T-Code: FB03 (Accounting Display)
-                    </span>
-                    {docDetails.docType === "KR" ? (
-                      <>
-                        <span className="px-2.5 py-0.5 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 font-extrabold">
-                          T-Code: MIR4 (LIV Logistics)
-                        </span>
-                        <span className="px-2.5 py-0.5 rounded bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-white/10">
-                          Original MM Invoice: 5105608240
-                        </span>
-                      </>
-                    ) : (
-                      <>
-                        <span className="px-2.5 py-0.5 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 font-extrabold">
-                          T-Code: VF03 (SD Billing Display)
-                        </span>
-                        <span className="px-2.5 py-0.5 rounded bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-white/10">
-                          Original SD Billing Doc: {docDetails.docNum}
-                        </span>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                {/* SAP FIORI Web Client Integration */}
-                <div className="pt-3.5 border-t border-slate-200/60 dark:border-white/5 flex flex-col gap-3 text-[10.5px] mt-1.5 animate-in fade-in duration-300">
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                    <div className="flex items-center gap-1.5 font-sans">
-                      <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-mono font-bold text-[9px] uppercase shrink-0 animate-pulse">
-                        Fiori & WebGUI
-                      </span>
-                      <span className="text-slate-600 dark:text-slate-400 font-medium">
-                        Launch this document in your browser using these resolution options:
-                      </span>
+                  {/* Informational banner */}
+                  <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 dark:border-emerald-500/10 rounded-2xl flex items-start gap-3">
+                    <Sparkles className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                    <div className="space-y-1">
+                      <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 font-sans">
+                        ARIA Audit Scanned Invoice
+                      </h4>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-normal">
+                        This panel displays the unique physical document extracted via our high-fidelity OCR engine. The orange highlights flag the actual Ship-To regional delivery address discovered from physical transport metadata, causing the tax variance.
+                      </p>
                     </div>
-                    <span className="text-[9.5px] text-slate-500 dark:text-slate-400 font-mono bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 px-2.5 py-0.5 rounded shadow-inner self-end sm:self-auto">
-                      🔑 Fiori User: <strong className="text-emerald-600 dark:text-emerald-400 font-extrabold">ARIA_FIN</strong> (or WebGUI: <strong className="text-slate-700 dark:text-slate-200 font-bold">ARIA</strong>) | <strong className="text-slate-700 dark:text-slate-200">Pass: Aria1234</strong>
+                  </div>
+
+                  {/* Sub-selector tabs inside PDF mode */}
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-slate-100 dark:bg-black/30 p-2.5 rounded-2xl border border-slate-200 dark:border-white/5 gap-2 font-mono">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-bold tracking-widest text-slate-400 uppercase">PDF Source:</span>
+                      <div className="flex bg-slate-200 dark:bg-white/5 p-0.5 rounded-lg text-[9px] font-bold">
+                        <button
+                          onClick={() => setPdfPreviewType("file")}
+                          className={clsx(
+                            "px-2.5 py-1 rounded transition-all cursor-pointer select-none",
+                            pdfPreviewType === "file"
+                              ? "bg-white dark:bg-white/10 text-slate-900 dark:text-white shadow-sm"
+                              : "text-slate-500 dark:text-slate-455 hover:text-slate-700 dark:hover:text-slate-350"
+                          )}
+                        >
+                          {docDetails?.partnerType === "Customer" ? "CUSTOMER PURCHASE ORDER (PDF)" : "SUPPLIER INVOICE (PDF)"}
+                        </button>
+                        <button
+                          onClick={() => setPdfPreviewType("draft")}
+                          className={clsx(
+                            "px-2.5 py-1 rounded transition-all cursor-pointer select-none",
+                            pdfPreviewType === "draft"
+                              ? "bg-white dark:bg-white/10 text-slate-900 dark:text-white shadow-sm"
+                              : "text-slate-500 dark:text-slate-455 hover:text-slate-700 dark:hover:text-slate-350"
+                          )}
+                        >
+                          INTERACTIVE DRAFT
+                        </button>
+                      </div>
+                    </div>
+                    <span className="text-[9.5px] text-slate-550 dark:text-slate-400">
+                      File: <strong className="text-cyan-600 dark:text-cyan-400">/invoices/transaction_audit_bundle.pdf#page={(() => {
+                        const docPageMap: Record<string, number> = {
+                          "90001641": 1,
+                          "90000016": 2,
+                          "90001619": 3,
+                          "90000000": 4,
+                          "90000001": 5,
+                          "90001639": 6,
+                          "90000002": 7,
+                          "90000003": 8,
+                          "90000004": 9,
+                          "90000005": 10,
+                          "90001807": 11,
+                          "90003770": 12,
+                          "90000008": 13,
+                          "90000009": 14,
+                          "90001801": 15,
+                          "90003459": 16,
+                          "90003493": 17,
+                          "90000013": 18,
+                          "90000014": 19,
+                          "90000015": 20
+                        };
+                        return docPageMap[docDetails.docNum] || 1;
+                      })()}</strong>
                     </span>
                   </div>
-                  
-                  <div className="flex flex-wrap gap-2 pt-0.5">
-                    {/* Option 1: Direct WebGUI FB03 (Bulletproof) */}
-                    <a 
-                      href={`https://172.211.212.84:44301/sap/bc/gui/sap/its/webgui?sap-client=100&sap-language=EN&~transaction=*FB03%20RFBELG-BELNR=${docDetails.docNum};RFBELG-BUKRS=${docDetails.companyCode};RFBELG-GJAHR=${docDetails.fiscalYear};DYNP_OKCODE=SHOW`}
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="px-2.5 py-1 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 font-extrabold hover:bg-blue-500/20 transition-all cursor-pointer font-mono text-[9px] flex items-center gap-1 hover:scale-105 active:scale-95 shadow-sm"
-                      title="Direct HTML5 SAP GUI - Bypasses Fiori target mapping completely"
-                    >
-                      <Globe className="w-3 h-3 text-blue-500 animate-spin" style={{ animationDuration: '10s' }} /> WebGUI Direct (FB03) <span className="text-[8px] opacity-75 font-normal">(Most Reliable)</span> ↗
-                    </a>
 
-                    {/* Option 2: Fiori JournalEntry Display */}
-                    <a 
-                      href={`https://172.211.212.84:44301/sap/bc/ui2/flp?sap-client=100&sap-language=EN#JournalEntry-display?AccountingDocument=${docDetails.docNum}&CompanyCode=${docDetails.companyCode}&FiscalYear=${docDetails.fiscalYear}`}
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="px-2.5 py-1 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-extrabold hover:bg-emerald-500/20 transition-all cursor-pointer font-mono text-[9px] flex items-center gap-1 hover:scale-105 active:scale-95 shadow-sm"
-                      title="Standard S/4HANA Journal Entry view"
-                    >
-                      <Globe className="w-3 h-3 text-emerald-500" /> Fiori (JournalEntry) ↗
-                    </a>
-
-                    {/* Option 3: Fiori JournalEntry Manage */}
-                    <a 
-                      href={`https://172.211.212.84:44301/sap/bc/ui2/flp?sap-client=100&sap-language=EN#JournalEntry-manage?AccountingDocument=${docDetails.docNum}&CompanyCode=${docDetails.companyCode}&FiscalYear=${docDetails.fiscalYear}`}
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="px-2.5 py-1 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 font-extrabold hover:bg-indigo-500/20 transition-all cursor-pointer font-mono text-[9px] flex items-center gap-1 hover:scale-105 active:scale-95 shadow-sm"
-                      title="Standard S/4HANA Manage Journal Entries dashboard"
-                    >
-                      <Globe className="w-3 h-3 text-indigo-500" /> Fiori (Manage JE) ↗
-                    </a>
-
-                    {/* Option 4: Original Legacy Intent */}
-                    <a 
-                      href={`https://172.211.212.84:44301/sap/bc/ui2/flp?sap-client=100&sap-language=EN#AccountingDocument-display?AccountingDocument=${docDetails.docNum}&CompanyCode=${docDetails.companyCode}&FiscalYear=${docDetails.fiscalYear}`}
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="px-2.5 py-1 rounded bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-white/10 font-bold hover:bg-slate-200 dark:hover:bg-white/10 transition-all cursor-pointer font-mono text-[9px] flex items-center gap-1 hover:scale-105 active:scale-95 shadow-sm"
-                      title="Legacy AccountingDocument intent"
-                    >
-                      <Globe className="w-3 h-3 text-slate-400" /> Legacy (AccountingDoc) ↗
-                    </a>
-                  </div>
-                </div>
-
-              </div>
-
-              {/* Journal Ledger Allocations Table */}
-              <div className="space-y-2.5">
-                <h4 className="text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
-                  Journal Entry line Allocations (PK Posting keys)
-                </h4>
-                
-                <div className="bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-white/5 rounded-2xl overflow-hidden shadow-inner">
-                  <table className="w-full text-left border-collapse text-xs select-text">
-                    <thead>
-                      <tr className="border-b border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-black/40 text-slate-400 dark:text-slate-500 font-bold font-mono text-[10px]">
-                        <th className="p-2.5 pl-4">Line</th>
-                        <th className="p-2.5">PK</th>
-                        <th className="p-2.5">Posting key Desc</th>
-                        <th className="p-2.5">SAP Account</th>
-                        <th className="p-2.5">Name / Description</th>
-                        <th className="p-2.5 text-right pr-4">Amount ({docDetails.currency})</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-200 dark:divide-white/5 font-mono text-[11px]">
-                      
-                      {/* Line item 1: Customer / Vendor line */}
-                      <tr className="hover:bg-slate-100 dark:hover:bg-white/5 transition-colors">
-                        <td className="p-3 pl-4 text-slate-400 font-extrabold">001</td>
-                        <td className="p-3 font-bold text-blue-600 dark:text-blue-400">{docDetails.postingKeys.line1.pk}</td>
-                        <td className="p-3 text-slate-500">{docDetails.postingKeys.line1.type}</td>
-                        <td className="p-3 font-bold text-slate-800 dark:text-slate-200">{docDetails.postingKeys.line1.account}</td>
-                        <td className="p-3 font-sans text-slate-700 dark:text-slate-300 font-bold">{docDetails.postingKeys.line1.name}</td>
-                        <td className={clsx(
-                          "p-3 text-right pr-4 font-bold text-xs",
-                          docDetails.postingKeys.line1.isDebit ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
-                        )}>
-                          {docDetails.postingKeys.line1.isDebit ? "" : "-"}${docDetails.postingKeys.line1.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </td>
-                      </tr>
-
-                      {/* Line item 2: G/L Offset Account line */}
-                      <tr className="hover:bg-slate-100 dark:hover:bg-white/5 transition-colors">
-                        <td className="p-3 pl-4 text-slate-400 font-extrabold">002</td>
-                        <td className="p-3 font-bold text-indigo-600 dark:text-indigo-400">{docDetails.postingKeys.line2.pk}</td>
-                        <td className="p-3 text-slate-500">{docDetails.postingKeys.line2.type}</td>
-                        <td className="p-3 font-bold text-slate-800 dark:text-slate-200">{docDetails.postingKeys.line2.account}</td>
-                        <td className="p-3 font-sans text-slate-700 dark:text-slate-300">{docDetails.postingKeys.line2.name}</td>
-                        <td className={clsx(
-                          "p-3 text-right pr-4 font-bold text-xs",
-                          docDetails.postingKeys.line2.isDebit ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
-                        )}>
-                          {docDetails.postingKeys.line2.isDebit ? "" : "-"}${docDetails.postingKeys.line2.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </td>
-                      </tr>
-
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              {/* Status Section */}
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pt-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest font-mono">
-                    Payment Terms:
-                  </span>
-                  <span className="text-xs font-mono font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-white/5 px-2 py-0.5 rounded-lg border border-slate-200 dark:border-white/10">
-                    {docDetails.terms}
-                  </span>
-                </div>
-                
-                {/* Payment block detail */}
-                <div className="flex items-center gap-2 font-mono">
-                  <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
-                    BSEG-ZLSPR (Block):
-                  </span>
-                  {docDetails.paymentBlock === "A" ? (
-                    <span className="px-3 py-1 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 text-xs font-bold flex items-center gap-1.5 animate-pulse">
-                      <ShieldAlert className="w-3.5 h-3.5 shrink-0" />
-                      A - Blocked for Duplicate
-                    </span>
+                  {pdfPreviewType === "file" ? (
+                    /* Real Scanned PDF iframe/object viewer */
+                    <div className="w-full h-[620px] bg-slate-150 dark:bg-black/40 rounded-3xl overflow-hidden border border-slate-250 dark:border-slate-800 shadow-xl flex flex-col items-center justify-center relative">
+                      {(() => {
+                        const docPageMap: Record<string, number> = {
+                          "90001641": 1,
+                          "90000016": 2,
+                          "90001619": 3,
+                          "90000000": 4,
+                          "90000001": 5,
+                          "90001639": 6,
+                          "90000002": 7,
+                          "90000003": 8,
+                          "90000004": 9,
+                          "90000005": 10,
+                          "90001807": 11,
+                          "90003770": 12,
+                          "90000008": 13,
+                          "90000009": 14,
+                          "90001801": 15,
+                          "90003459": 16,
+                          "90003493": 17,
+                          "90000013": 18,
+                          "90000014": 19,
+                          "90000015": 20
+                        };
+                        const pageNum = docPageMap[docDetails.docNum] || 1;
+                        return (
+                          <>
+                            <iframe 
+                              src={`/invoices/transaction_audit_bundle.pdf#page=${pageNum}&toolbar=0&navpanes=0&scrollbar=0&view=Fit`} 
+                              className="w-full h-full border-0 rounded-3xl pointer-events-none"
+                              title={`Scanned Invoice PDF ${docDetails.docNum}`}
+                            />
+                            
+                            {/* Gentle helper overlay showing fallback suggestion if PDF fails to render in browser */}
+                            <div className="absolute bottom-4 left-4 right-4 bg-slate-900/90 text-white p-3.5 rounded-2xl text-[10.5px] font-sans flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 backdrop-blur-md border border-white/5 pointer-events-auto">
+                              <span className="flex items-start sm:items-center gap-1.5 font-light leading-normal text-left">
+                                <Info className="w-4 h-4 text-cyan-400 mt-0.5 sm:mt-0 shrink-0" />
+                                <span>Viewing page <strong className="text-cyan-455 font-bold">{pageNum}</strong> of physical PDF bundle from <code className="px-1.5 py-0.5 rounded bg-white/15 text-slate-200">public/invoices/transaction_audit_bundle.pdf</code>.</span>
+                              </span>
+                              <button
+                                onClick={() => setPdfPreviewType("draft")}
+                                className="px-3.5 py-1.5 bg-white/15 hover:bg-white/25 border border-white/10 text-white font-bold rounded-xl transition-colors cursor-pointer select-none text-[9.5px] font-mono shrink-0 active:scale-95"
+                              >
+                                Switch to Draft ➔
+                              </button>
+                            </div>
+                          </>
+                        );
+                      })()}
+                    </div>
                   ) : (
-                    <span className="px-3 py-1 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-xs font-bold flex items-center gap-1.5">
-                      <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
-                      Free for Payment
-                    </span>
+                    /* Physical Printed Paper Invoice Sheet (our HTML draft) */
+                    <div className="bg-white text-slate-800 p-8 border border-slate-200/80 shadow-2xl rounded-3xl relative select-text font-sans max-w-2xl mx-auto ring-4 ring-slate-100 dark:ring-black/10 text-left">
+                      
+                      {/* Rotated Auditor Watermark Stamp */}
+                      {(() => {
+                        const variance = (selectedInvoice as any).varianceType || "None";
+                        const stampStyle = 
+                          variance === "Exempt" 
+                            ? "border-amber-500 text-amber-600 bg-amber-500/5 rotate-[-12deg]" 
+                            : variance === "Rate Mismatch"
+                              ? "border-indigo-500 text-indigo-600 bg-indigo-500/5 rotate-[-12deg]"
+                              : "border-emerald-500 text-emerald-600 bg-emerald-500/5 rotate-[-12deg]";
+                        
+                        const stampText = 
+                          variance === "Exempt" 
+                            ? "TAX EXEMPT STATE" 
+                            : variance === "Rate Mismatch"
+                              ? "RATE ADJUSTMENT REQ"
+                              : "AUDIT COMPLIANT";
+                        
+                        return (
+                          <div className={clsx(
+                            "absolute top-36 right-8 px-4 py-2 border-4 rounded-xl text-xs font-extrabold tracking-widest font-mono select-none opacity-85 z-20 pointer-events-none uppercase",
+                            stampStyle
+                          )}>
+                            {stampText}
+                          </div>
+                        );
+                      })()}
+
+                      {/* Invoice Top Header */}
+                      <div className="flex justify-between items-start border-b-2 border-slate-100 pb-6">
+                        <div className="space-y-1.5">
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded-lg bg-gradient-to-tr from-slate-900 to-slate-700 flex items-center justify-center text-white text-[11px] font-black font-sans shadow-md">
+                              EV
+                            </div>
+                            <span className="font-extrabold text-sm text-slate-900 tracking-tight">Evolver Logistics Corp.</span>
+                          </div>
+                          <p className="text-[10px] text-slate-400 font-medium leading-relaxed">
+                            100 S S/4HANA Way, Suite 400<br />
+                            San Jose, CA 95113<br />
+                            Tel: +1 (800) 555-SAP1
+                          </p>
+                        </div>
+                        
+                        <div className="text-right space-y-1">
+                          <h2 className="text-lg font-black text-slate-950 tracking-tight uppercase">Invoice Document</h2>
+                          <div className="text-[10px] text-slate-500 font-mono space-y-0.5">
+                            <div>Invoice #: <strong className="text-slate-800 font-bold">{docDetails.docNum}</strong></div>
+                            <div>Date: <strong className="text-slate-800 font-bold">{docDetails.docDate}</strong></div>
+                            <div>PO Ref: <strong className="text-slate-800 font-bold">{docDetails.reference}</strong></div>
+                            <div>Terms: <strong className="text-slate-800 font-bold">{docDetails.terms}</strong></div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Addresses grid */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 py-6 text-xs border-b border-slate-100">
+                        {/* Bill To */}
+                        <div className="space-y-2">
+                          <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest block font-mono">Bill To:</span>
+                          <div className="font-bold text-slate-900">
+                            {(() => {
+                              const details = getMockInvoicePDFData(docDetails.docNum);
+                              const lines = details.billTo.split('\n');
+                              return (
+                                <>
+                                  <div className="text-[12px] font-extrabold text-slate-950">{lines[0]}</div>
+                                  <div className="font-normal text-slate-500 mt-1 space-y-0.5">
+                                    {lines.slice(1).map((l, i) => <div key={i}>{l}</div>)}
+                                  </div>
+                                </>
+                              );
+                            })()}
+                          </div>
+                        </div>
+
+                        {/* Ship To */}
+                        <div className="space-y-2">
+                          <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest block font-mono">Ship To (Physical Delivery):</span>
+                          {(() => {
+                            const details = getMockInvoicePDFData(docDetails.docNum);
+                            const lines = details.shipTo.split('\n');
+                            const variance = (selectedInvoice as any).varianceType || "None";
+                            const hasVariance = variance !== "None";
+                            
+                            return (
+                              <div className={clsx(
+                                "p-3 rounded-2xl border transition-all text-left",
+                                hasVariance
+                                  ? "bg-amber-500/5 border-amber-300 text-slate-900 shadow-sm"
+                                  : "border-slate-150 text-slate-900"
+                              )}>
+                                <div className="font-bold text-[12px] flex items-center gap-1.5">
+                                  {lines[0]}
+                                  {hasVariance && (
+                                    <span className="px-1.5 py-0.5 bg-amber-500 text-white font-mono text-[8px] font-black rounded uppercase tracking-wider">
+                                      Discrepancy
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="font-normal text-slate-500 mt-1 space-y-0.5">
+                                  {lines.slice(1).map((l, i) => <div key={i}>{l}</div>)}
+                                </div>
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      </div>
+
+                      {/* Invoice Items Table */}
+                      <table className="w-full text-left border-collapse text-xs mt-6">
+                        <thead>
+                          <tr className="border-b-2 border-slate-150 text-slate-400 font-bold uppercase text-[9px] tracking-wider">
+                            <th className="py-2.5">Item Details</th>
+                            <th className="py-2.5 text-center w-12">Qty</th>
+                            <th className="py-2.5 text-right w-24">Unit Price</th>
+                            <th className="py-2.5 text-center w-16">Tax Code</th>
+                            <th className="py-2.5 text-right pr-2 w-28">Net Total</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 text-[11px] text-slate-600 font-medium">
+                          {(() => {
+                            const details = getMockInvoicePDFData(docDetails.docNum);
+                            return details.items.map((item, idx) => (
+                              <tr key={idx} className="hover:bg-slate-50/50">
+                                <td className="py-3 font-bold text-slate-900">{item.desc}</td>
+                                <td className="py-3 text-center font-mono">{item.qty}</td>
+                                <td className="py-3 text-right font-mono">${item.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                                <td className="py-3 text-center font-mono text-[10px] text-slate-400 font-bold">{item.code}</td>
+                                <td className="py-3 text-right pr-2 font-mono text-slate-900 font-bold">${(item.qty * item.price).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                              </tr>
+                            ));
+                          })()}
+                        </tbody>
+                      </table>
+
+                      {/* Invoice Totals Summary Block */}
+                      <div className="mt-8 border-t-2 border-slate-100 pt-6 flex flex-col sm:flex-row justify-between items-start gap-6">
+                        {/* Left: Auditor Memo */}
+                        <div className="max-w-[280px] space-y-2 text-[10.5px] text-slate-500 bg-slate-50 p-3.5 rounded-2xl border border-slate-100">
+                          <span className="font-extrabold text-slate-950 uppercase block text-[8.5px] tracking-widest font-mono">Auditor Memo:</span>
+                          <p className="leading-relaxed">
+                            {getMockInvoicePDFData(docDetails.docNum).memo || "Audit check complete. Document lines verified."}
+                          </p>
+                        </div>
+
+                        {/* Right: Calculations */}
+                        <div className="w-full sm:w-56 space-y-2 text-xs font-medium text-slate-500">
+                          <div className="flex justify-between">
+                            <span>Subtotal:</span>
+                            <span className="font-mono text-slate-900 font-bold">${docDetails.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                          </div>
+                          <div className="flex justify-between items-center text-[11px]">
+                            <span>SAP Billed Tax ({((selectedInvoice as any).taxBilledRate || 0).toFixed(2)}%):</span>
+                            <span className="font-mono text-rose-600 font-bold">${((selectedInvoice as any).taxBilledAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                          </div>
+                          <div className="flex justify-between items-center text-[11px] border-b border-dashed border-slate-200 pb-2">
+                            <span className="font-bold text-emerald-600">Correct Tax ({((selectedInvoice as any).taxCorrectRate || 0).toFixed(2)}%):</span>
+                            <span className="font-mono text-emerald-600 font-extrabold">${((selectedInvoice as any).taxCorrectAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                          </div>
+                          
+                          {/* Final Balance */}
+                          <div className="flex justify-between items-baseline pt-2">
+                            <span className="font-extrabold text-slate-950 text-xs uppercase tracking-wider font-mono">Invoice Total:</span>
+                            <span className="font-mono text-slate-950 font-black text-sm">
+                              ${(docDetails.amount + ((selectedInvoice as any).taxCorrectAmount || 0)).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                            </span>
+                          </div>
+
+                          {/* Variance Note */}
+                          {(() => {
+                            const delta = ((selectedInvoice as any).taxBilledAmount || 0) - ((selectedInvoice as any).taxCorrectAmount || 0);
+                            if (delta <= 0.01) return null;
+                            return (
+                              <div className="bg-emerald-50 text-emerald-700 text-[10px] font-bold p-2.5 rounded-xl border border-emerald-250 text-center tracking-wide mt-2">
+                                Reclaimable Tax Delta: **${delta.toLocaleString(undefined, { minimumFractionDigits: 2 })}**
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      </div>
+
+                    </div>
                   )}
                 </div>
-              </div>
+              ) : (
+                /* ORIGINAL SAP FIORI LEDGER DISPLAY */
+                <>
+                  {/* Document Header details grid */}
+                  <div className="bg-slate-50 dark:bg-black/30 border border-slate-200 dark:border-white/5 rounded-2xl p-5 space-y-4 text-left">
+                    <h4 className="text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                      Document Header (BSEG / BKPF Records)
+                    </h4>
+                    
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs font-mono">
+                      <div className="space-y-1">
+                        <span className="text-[9px] text-slate-400 dark:text-slate-500 block uppercase">Document Number</span>
+                        <span className="text-slate-900 dark:text-white font-extrabold">{docDetails.docNum}</span>
+                      </div>
+                      <div className="space-y-1">
+                        <span className="text-[9px] text-slate-400 dark:text-slate-500 block uppercase">Company Code</span>
+                        <span className="text-slate-900 dark:text-white font-extrabold">{docDetails.companyCode}</span>
+                      </div>
+                      <div className="space-y-1">
+                        <span className="text-[9px] text-slate-400 dark:text-slate-500 block uppercase">Fiscal Year</span>
+                        <span className="text-slate-900 dark:text-white font-extrabold">{docDetails.fiscalYear}</span>
+                      </div>
+                      <div className="space-y-1">
+                        <span className="text-[9px] text-slate-400 dark:text-slate-500 block uppercase">Ledger Period</span>
+                        <span className="text-slate-900 dark:text-white font-extrabold">{docDetails.period}</span>
+                      </div>
+                      
+                      <div className="space-y-1 pt-2 border-t border-slate-200 dark:border-white/5">
+                        <span className="text-[9px] text-slate-400 dark:text-slate-500 block uppercase">Document Date</span>
+                        <span className="text-slate-900 dark:text-white font-bold">{docDetails.docDate}</span>
+                      </div>
+                      <div className="space-y-1 pt-2 border-t border-slate-200 dark:border-white/5">
+                        <span className="text-[9px] text-slate-400 dark:text-slate-500 block uppercase">Posting Date</span>
+                        <span className="text-slate-900 dark:text-white font-bold">{docDetails.postingDate}</span>
+                      </div>
+                      <div className="space-y-1 pt-2 border-t border-slate-200 dark:border-white/5">
+                        <span className="text-[9px] text-slate-400 dark:text-slate-500 block uppercase">Document Type</span>
+                        <span className="text-slate-900 dark:text-white font-bold">{docDetails.docType} ({docDetails.docTypeDesc})</span>
+                      </div>
+                      <div className="space-y-1 pt-2 border-t border-slate-200 dark:border-white/5">
+                        <span className="text-[9px] text-slate-400 dark:text-slate-500 block uppercase">Reference Key</span>
+                        <span className="text-cyan-600 dark:text-cyan-400 font-bold">{docDetails.reference}</span>
+                      </div>
+                    </div>
+
+                    {/* SAP GUI Lookup Integration */}
+                    <div className="pt-4 border-t border-slate-200/60 dark:border-white/5 flex flex-col md:flex-row justify-between items-start md:items-center gap-3 text-[10.5px]">
+                      <div className="flex items-center gap-1.5 font-sans">
+                        <span className="px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-mono font-bold text-[9px] uppercase shrink-0">
+                          SAP GUI
+                        </span>
+                        <span className="text-slate-600 dark:text-slate-400 font-medium">
+                          To locate this item in standard SAP desktop graphical interface:
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap gap-2 font-mono text-[9.5px]">
+                        <span className="px-2.5 py-0.5 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 font-extrabold">
+                          T-Code: FB03 (Accounting Display)
+                        </span>
+                        {docDetails.docType === "KR" ? (
+                          <>
+                            <span className="px-2.5 py-0.5 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 font-extrabold">
+                              T-Code: MIR4 (LIV Logistics)
+                            </span>
+                            <span className="px-2.5 py-0.5 rounded bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-white/10">
+                              Original MM Invoice: 5105608240
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="px-2.5 py-0.5 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 font-extrabold">
+                              T-Code: VF03 (SD Billing Display)
+                            </span>
+                            <span className="px-2.5 py-0.5 rounded bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-white/10">
+                              Original SD Billing Doc: {docDetails.docNum}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* SAP FIORI Web Client Integration */}
+                    <div className="pt-3.5 border-t border-slate-200/60 dark:border-white/5 flex flex-col gap-3 text-[10.5px] mt-1.5 animate-in fade-in duration-300">
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                        <div className="flex items-center gap-1.5 font-sans">
+                          <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-mono font-bold text-[9px] uppercase shrink-0 animate-pulse">
+                            Fiori & WebGUI
+                          </span>
+                          <span className="text-slate-600 dark:text-slate-400 font-medium">
+                            Launch this document in your browser using these resolution options:
+                          </span>
+                        </div>
+                        <span className="text-[9.5px] text-slate-500 dark:text-slate-400 font-mono bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 px-2.5 py-0.5 rounded shadow-inner self-end sm:self-auto">
+                          🔑 Fiori User: <strong className="text-emerald-600 dark:text-emerald-400 font-extrabold">ARIA_FIN</strong> (or WebGUI: <strong className="text-slate-700 dark:text-slate-200 font-bold">ARIA</strong>) | <strong className="text-slate-700 dark:text-slate-200">Pass: Aria1234</strong>
+                        </span>
+                      </div>
+                      
+                      <div className="flex flex-wrap gap-2 pt-0.5">
+                        {/* Option 1: Direct WebGUI FB03 (Bulletproof) */}
+                        <a 
+                          href={`https://172.211.212.84:44301/sap/bc/gui/sap/its/webgui?sap-client=100&sap-language=EN&~transaction=*FB03%20RFBELG-BELNR=${docDetails.docNum};RFBELG-BUKRS=${docDetails.companyCode};RFBELG-GJAHR=${docDetails.fiscalYear};DYNP_OKCODE=SHOW`}
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="px-2.5 py-1 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 font-extrabold hover:bg-blue-500/20 transition-all cursor-pointer font-mono text-[9px] flex items-center gap-1 hover:scale-105 active:scale-95 shadow-sm"
+                          title="Direct HTML5 SAP GUI - Bypasses Fiori target mapping completely"
+                        >
+                          <Globe className="w-3.5 h-3.5 text-blue-500 animate-spin" style={{ animationDuration: '10s' }} /> WebGUI Direct (FB03) <span className="text-[8px] opacity-75 font-normal">(Most Reliable)</span> ↗
+                        </a>
+
+                        {/* Option 2: Fiori JournalEntry Display */}
+                        <a 
+                          href={`https://172.211.212.84:44301/sap/bc/ui2/flp?sap-client=100&sap-language=EN#JournalEntry-display?AccountingDocument=${docDetails.docNum}&CompanyCode=${docDetails.companyCode}&FiscalYear=${docDetails.fiscalYear}`}
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="px-2.5 py-1 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-extrabold hover:bg-emerald-500/20 transition-all cursor-pointer font-mono text-[9px] flex items-center gap-1 hover:scale-105 active:scale-95 shadow-sm"
+                          title="Standard S/4HANA Journal Entry view"
+                        >
+                          <Globe className="w-3.5 h-3.5 text-emerald-500" /> Fiori (JournalEntry) ↗
+                        </a>
+
+                        {/* Option 3: Fiori JournalEntry Manage */}
+                        <a 
+                          href={`https://172.211.212.84:44301/sap/bc/ui2/flp?sap-client=100&sap-language=EN#JournalEntry-manage?AccountingDocument=${docDetails.docNum}&CompanyCode=${docDetails.companyCode}&FiscalYear=${docDetails.fiscalYear}`}
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="px-2.5 py-1 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 font-extrabold hover:bg-indigo-500/20 transition-all cursor-pointer font-mono text-[9px] flex items-center gap-1 hover:scale-105 active:scale-95 shadow-sm"
+                          title="Standard S/4HANA Manage Journal Entries dashboard"
+                        >
+                          <Globe className="w-3.5 h-3.5 text-indigo-500" /> Fiori (Manage JE) ↗
+                        </a>
+
+                        {/* Option 4: Original Legacy Intent */}
+                        <a 
+                          href={`https://172.211.212.84:44301/sap/bc/ui2/flp?sap-client=100&sap-language=EN#AccountingDocument-display?AccountingDocument=${docDetails.docNum}&CompanyCode=${docDetails.companyCode}&FiscalYear=${docDetails.fiscalYear}`}
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="px-2.5 py-1 rounded bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-white/10 font-bold hover:bg-slate-200 dark:hover:bg-white/10 transition-all cursor-pointer font-mono text-[9px] flex items-center gap-1 hover:scale-105 active:scale-95 shadow-sm"
+                          title="Legacy AccountingDocument intent"
+                        >
+                          <Globe className="w-3.5 h-3.5 text-slate-400" /> Legacy (AccountingDoc) ↗
+                        </a>
+                      </div>
+                    </div>
+
+                  </div>
+
+                  {/* Journal Ledger Allocations Table */}
+                  <div className="space-y-2.5 text-left">
+                    <h4 className="text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                      Journal Entry line Allocations (PK Posting keys)
+                    </h4>
+                    
+                    <div className="bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-white/5 rounded-2xl overflow-hidden shadow-inner">
+                      <table className="w-full text-left border-collapse text-xs select-text">
+                        <thead>
+                          <tr className="border-b border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-black/40 text-slate-400 dark:text-slate-500 font-bold font-mono text-[10px]">
+                            <th className="p-2.5 pl-4">Line</th>
+                            <th className="p-2.5">PK</th>
+                            <th className="p-2.5">Posting key Desc</th>
+                            <th className="p-2.5">SAP Account</th>
+                            <th className="p-2.5">Name / Description</th>
+                            <th className="p-2.5 text-right pr-4">Amount ({docDetails.currency})</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-200 dark:divide-white/5 font-mono text-[11px]">
+                          
+                          {/* Line item 1: Customer / Vendor line */}
+                          <tr className="hover:bg-slate-100 dark:hover:bg-white/5 transition-colors">
+                            <td className="p-3 pl-4 text-slate-400 font-extrabold">001</td>
+                            <td className="p-3 font-bold text-blue-600 dark:text-blue-400">{docDetails.postingKeys.line1.pk}</td>
+                            <td className="p-3 text-slate-500">{docDetails.postingKeys.line1.type}</td>
+                            <td className="p-3 font-bold text-slate-800 dark:text-slate-200">{docDetails.postingKeys.line1.account}</td>
+                            <td className="p-3 font-sans text-slate-700 dark:text-slate-300 font-bold">{docDetails.postingKeys.line1.name}</td>
+                            <td className={clsx(
+                              "p-3 text-right pr-4 font-bold text-xs",
+                              docDetails.postingKeys.line1.isDebit ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
+                            )}>
+                              {docDetails.postingKeys.line1.isDebit ? "" : "-"}${docDetails.postingKeys.line1.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </td>
+                          </tr>
+
+                          {/* Line item 2: G/L Offset Account line */}
+                          <tr className="hover:bg-slate-100 dark:hover:bg-white/5 transition-colors">
+                            <td className="p-3 pl-4 text-slate-400 font-extrabold">002</td>
+                            <td className="p-3 font-bold text-indigo-600 dark:text-indigo-400">{docDetails.postingKeys.line2.pk}</td>
+                            <td className="p-3 text-slate-500">{docDetails.postingKeys.line2.type}</td>
+                            <td className="p-3 font-bold text-slate-800 dark:text-slate-200">{docDetails.postingKeys.line2.account}</td>
+                            <td className="p-3 font-sans text-slate-700 dark:text-slate-300">{docDetails.postingKeys.line2.name}</td>
+                            <td className={clsx(
+                              "p-3 text-right pr-4 font-bold text-xs",
+                              docDetails.postingKeys.line2.isDebit ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
+                            )}>
+                              {docDetails.postingKeys.line2.isDebit ? "" : "-"}${docDetails.postingKeys.line2.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </td>
+                          </tr>
+
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* Status Section */}
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pt-2 text-left">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest font-mono">
+                        Payment Terms:
+                      </span>
+                      <span className="text-xs font-mono font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-white/5 px-2 py-0.5 rounded-lg border border-slate-200 dark:border-white/10">
+                        {docDetails.terms}
+                      </span>
+                    </div>
+                    
+                    {/* Payment block detail */}
+                    <div className="flex items-center gap-2 font-mono">
+                      <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                        BSEG-ZLSPR (Block):
+                      </span>
+                      {docDetails.paymentBlock === "A" ? (
+                        <span className="px-3 py-1 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 text-xs font-bold flex items-center gap-1.5 animate-pulse animate-duration-1000">
+                          <ShieldAlert className="w-3.5 h-3.5 shrink-0" />
+                          A - Blocked for Duplicate
+                        </span>
+                      ) : (
+                        <span className="px-3 py-1 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-xs font-bold flex items-center gap-1.5">
+                          <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
+                          Free for Payment
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
 
             </div>
 

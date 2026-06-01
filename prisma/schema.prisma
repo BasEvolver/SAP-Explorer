@@ -236,17 +236,19 @@ model SapArItem {
 }
 
 model SapApItem {
-  id            String   @id // Document ID
-  companyCode   String
-  vendor        String
-  vendorName    String
-  amount        Float
+  id                String   @id // Document ID
+  companyCode       String
+  vendor            String
+  vendorName        String
+  amount            Float
   currency      String
   glAccount     String
   glAccountName String
   postingDate   String
   originalTerms String
   zfbdt         String   // Baseline date (ZFBDT)
-  updatedAt     DateTime @default(now()) @updatedAt
+  documentReference String?  // Invoice Reference Text (XBLNR)
+  paymentBlock      String?  // Payment Block indicator (ZLSPR: 'A' = Locked)
+  updatedAt         DateTime @default(now()) @updatedAt
 }
 

@@ -1,0 +1,18 @@
+[
+  {
+    "id": "MAT-2026-5534",
+    "description": "Alexa Echo 5",
+    "plant": "1710",
+    "materialType": "ROH",
+    "uom": "PC",
+    "createdAt": "2026-05-31T16:34:16.569Z"
+  },
+  {
+    "id": "2323",
+    "description": "Alexa Echo Show 5",
+    "plant": "1710",
+    "materialType": "FERT",
+    "uom": "PC",
+    "createdAt": "2026-05-31T17:02:15.968Z"
+  }
+]

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useTheme } from "next-themes";
 import {
   TrendingUp,
   Coins,
@@ -17,7 +18,17 @@ import {
   AlertCircle,
   Network,
   CheckCircle2,
-  BarChart2
+  BarChart2,
+  Eye,
+  Terminal,
+  Sliders,
+  Zap,
+  Globe,
+  Layers,
+  FileCode,
+  Check,
+  Info,
+  ChevronRight
 } from "lucide-react";
 import clsx from "clsx";
 
@@ -56,14 +67,69 @@ interface SourceConnector {
   status: string;
 }
 
+export type TabId = "overview" | "ingestion" | "visualize" | "reason" | "execute" | "evidence";
+
 export default function AriaFinanceDashboard() {
-  const [currentPhase, setCurrentPhase] = useState<number>(1); // 1: Retrieve, 2: Analyze, 3: Recommend, 4: Execute
-  const [retrieveSubStep, setRetrieveSubStep] = useState<number>(1); // 1: Identify, 2: Audit Global, 3: Calculate Filter, 4: Ingest & Link
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme !== "light";
+  const { theme } = useTheme();
+  const [activeTab, setActiveTab] = useState<TabId>("overview");
+  const [activeOutlineSection, setActiveOutlineSection] = useState<string>("ov-summary");
+  const [currentPhase, setCurrentPhase] = useState<number>(1); // kept for subcomponents/backward compatibility
+
+  const handleTabChange = (tab: TabId) => {
+    setActiveTab(tab);
+    if (tab === "overview") setActiveOutlineSection("ov-summary");
+    else if (tab === "ingestion") setActiveOutlineSection("ing-pipeline");
+    else if (tab === "visualize") setActiveOutlineSection("vis-forecast");
+    else if (tab === "reason") setActiveOutlineSection("reas-sliders");
+    else if (tab === "execute") setActiveOutlineSection("exec-gate");
+    else if (tab === "evidence") setActiveOutlineSection("ev-graph");
+  };
+
+  const outlineSections: Record<TabId, { id: string; label: string; icon: any }[]> = {
+    overview: [
+      { id: "ov-summary", label: "1.1 Scenario Summary", icon: Eye },
+      { id: "ov-what", label: "1.2 Diagnostic Plan", icon: Sparkles },
+      { id: "ov-why", label: "1.3 Value & Compliance", icon: ShieldCheck },
+      { id: "ov-process", label: "1.4 Ingestion Blueprint", icon: Network },
+      { id: "ov-objective", label: "1.5 Cash Objective Model", icon: Sliders },
+      { id: "ov-tables", label: "1.6 SAP Schema Mapping", icon: Database }
+    ],
+    ingestion: [
+      { id: "ing-pipeline", label: "2.1 OData Stage Controls", icon: Network },
+      { id: "ing-dictionary", label: "2.2 SAP Data Dictionary", icon: FileCode },
+      { id: "ing-pgcache", label: "2.3 PostgreSQL Cache DB", icon: Database }
+    ],
+    visualize: [
+      { id: "vis-forecast", label: "3.1 Projected Cash Curve", icon: TrendingUp },
+      { id: "vis-insights", label: "3.2 Liquidity Risk Cards", icon: AlertCircle },
+      { id: "vis-causes", label: "3.3 Deficit Root Causes", icon: Activity }
+    ],
+    reason: [
+      { id: "reas-sliders", label: "4.1 Strategy Adjustments", icon: Sliders },
+      { id: "reas-rules", label: "4.2 Policy Engine Check", icon: ShieldCheck },
+      { id: "reas-rationale", label: "4.3 AI Domain Rationale", icon: Sparkles }
+    ],
+    execute: [
+      { id: "exec-gate", label: "5.1 Reviewer Gate Sign-off", icon: Lock },
+      { id: "exec-terminal", label: "5.2 BAPI Terminal Console", icon: Terminal }
+    ],
+    evidence: [
+      { id: "ev-graph", label: "6.1 Process Evidence Graph", icon: Network },
+      { id: "ev-memo", label: "6.2 Printable Audit Memo", icon: FileText }
+    ]
+  };
 
   // Live S/4HANA Ingestion Pipeline States
   const [companyCode, setCompanyCode] = useState<string>("1710");
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [pipelineLog, setPipelineLog] = useState<string[]>([]);
+
+  // Working Capital Scenario Parameter States
+  const [wcDocScope, setWcDocScope] = useState<"all" | "orders" | "sales">("all");
+  const [minOrderValue, setMinOrderValue] = useState<number>(50000);
+  const [topLimit, setTopLimit] = useState<string>("all");
   
   const [sources, setSources] = useState<SourceConnector[]>([
     { id: "BSID", name: "API_OPERATIONAL_AR_SRV", desc: "Accounts Receivable: Open Items (BSID/BSAD)", status: "Discovered" },
@@ -275,7 +341,13 @@ export default function AriaFinanceDashboard() {
         const ingestRes = await fetch("/api/sap/finance-data", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "INGEST", companyCode })
+          body: JSON.stringify({
+            action: "INGEST",
+            companyCode,
+            wcDocScope,
+            minOrderValue,
+            topLimit
+          })
         });
         const ingestJson = await ingestRes.json();
 
@@ -294,7 +366,7 @@ export default function AriaFinanceDashboard() {
         }
 
         // Fetch the ingested database entries directly from local PostgreSQL cache (source=db)
-        const fetchRes = await fetch(`/api/sap/finance-data?companyCode=${companyCode}&source=db`);
+        const fetchRes = await fetch(`/api/sap/finance-data?companyCode=${companyCode}&source=db&wcDocScope=${wcDocScope}&minOrderValue=${minOrderValue}&topLimit=${topLimit}`);
         const json = await fetchRes.json();
         
         if (json.status === "success") {
@@ -362,7 +434,7 @@ export default function AriaFinanceDashboard() {
   };
 
   return (
-    <div className="w-full h-full flex flex-col p-8 pt-20 overflow-y-auto bg-evolver-bg-dark select-none">
+    <div className="w-full h-full flex flex-col p-8 pt-20 overflow-y-auto bg-slate-50 dark:bg-evolver-bg-dark text-slate-800 dark:text-slate-100 select-none transition-colors duration-300">
       {/* Header Panel */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 z-10 gap-4">
         <div className="flex items-center space-x-3">
@@ -371,7 +443,7 @@ export default function AriaFinanceDashboard() {
           </span>
           <div>
             <h1 className="text-3xl font-bold dark:text-white text-slate-900 tracking-tight flex items-center">
-              Working Capital & Cash Conversion
+              Working Capital
               <span className="ml-3 text-xs font-mono px-2 py-0.5 rounded bg-evolver-viridian/20 text-evolver-viridian-light border border-evolver-viridian/30 uppercase">
                 Active S/4HANA CAL
               </span>
@@ -385,435 +457,486 @@ export default function AriaFinanceDashboard() {
         {/* Global Connection & Selector Panel */}
         <div className="flex items-center space-x-4">
           <div className="flex flex-col space-y-1">
-            <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider font-sans">Active Company Code</span>
-            <select
-              value={companyCode}
-              disabled={isProcessing}
-              onChange={(e) => {
-                setCompanyCode(e.target.value);
-                setArItems([]);
-                setApItems([]);
-                setCounts(prev => ({
-                  ...prev,
-                  filtered: { ledger: 0, arItems: 0, apItems: 0 }
-                }));
-              }}
-              className="bg-black/60 border border-white/10 rounded-xl py-1.5 px-3 text-xs text-white focus:outline-none focus:border-evolver-viridian/50 transition-all font-mono font-bold"
-            >
-              <option value="1710">1710 - US Operations</option>
-              <option value="1010">1010 - US Subsidiary</option>
-              <option value="1000">1000 - European HQ</option>
-              <option value="1810">1810 - Canadian Ops</option>
-            </select>
+            <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider font-sans">Active Scope</span>
+            <div className="flex items-center space-x-2 glass-panel px-4 py-2 rounded-xl border border-slate-200 dark:border-white/5 shadow-md h-[32px]">
+              <span className="w-1.5 h-1.5 rounded-full bg-evolver-viridian"></span>
+              <span className="text-[10px] text-slate-700 dark:text-slate-350 font-mono font-bold">CC: {companyCode}</span>
+            </div>
           </div>
 
           <div className="flex flex-col space-y-1">
             <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider font-sans">S/4HANA Connectivity</span>
-            <div className="flex items-center space-x-2 glass-panel px-4 py-2 rounded-xl border border-white/5 shadow-md h-[32px]">
+            <div className="flex items-center space-x-2 glass-panel px-4 py-2 rounded-xl border border-slate-200 dark:border-white/5 shadow-md h-[32px]">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span className="text-[10px] text-slate-400 font-mono">Host: 108.142.112.116 (CAL)</span>
+              <span className="text-[10px] text-slate-600 dark:text-slate-400 font-mono">Host: 108.142.112.116 (CAL)</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Stepper Steps Menu */}
-      <div className="grid grid-cols-4 gap-2 mb-8 bg-black/40 p-1.5 rounded-2xl border border-white/5 z-10">
+      {/* Filing Cabinet Navigation Tabs */}
+      <div className="flex flex-wrap items-end pl-2 sm:pl-6 z-10 -mb-[1px] space-x-1 w-full font-mono mt-4">
         {[
-          { phase: 1, title: "1. Retrieve SAP Data", desc: "Live OData extracts" },
-          { phase: 2, title: "2. Analyze Runway", desc: "Real ledger predictions" },
-          { phase: 3, title: "3. Recommend", desc: "Policies & AI sliders" },
-          { phase: 4, title: "4. Execute BAPIs", desc: "Committed write-backs" }
-        ].map((step) => {
-          const isActive = currentPhase === step.phase;
-          const isDone = currentPhase > step.phase;
+          { id: "overview", label: "1. Overview", icon: Eye },
+          { id: "ingestion", label: "2. Ingestion", icon: Database },
+          { id: "visualize", label: "3. Visualize Findings", icon: BarChart2 },
+          { id: "reason", label: "4. Reason Policies", icon: ShieldCheck },
+          { id: "execute", label: "5. Execute BAPI", icon: Terminal },
+          { id: "evidence", label: "6. Audit Evidence", icon: FileText }
+        ].map(t => {
+          const isTabActive = activeTab === t.id;
           return (
             <button
-              key={step.phase}
-              disabled={step.phase > 1 && arItems.length === 0}
-              onClick={() => setCurrentPhase(step.phase)}
+              key={t.id}
+              onClick={() => handleTabChange(t.id as TabId)}
               className={clsx(
-                "p-3 rounded-xl transition-all duration-300 text-left relative flex flex-col justify-center",
-                isActive
-                  ? "bg-evolver-viridian text-white shadow-lg animate-pulse"
-                  : isDone
-                  ? "bg-white/5 text-slate-300 border border-white/5 hover:bg-white/10"
-                  : "bg-black/10 text-slate-600 border border-transparent cursor-not-allowed"
+                "relative px-4 sm:px-5 py-2.5 text-[10.5px] font-extrabold transition-all duration-200 select-none rounded-t-xl sm:rounded-t-2xl flex items-center gap-1.5 border border-slate-200 dark:border-white/5 shrink-0 uppercase tracking-wider cursor-pointer",
+                isTabActive
+                  ? "bg-white dark:bg-slate-900/50 backdrop-blur-xl border-b-transparent dark:border-b-transparent text-slate-900 dark:text-white font-black z-20 shadow-[0_-4px_12px_rgba(0,0,0,0.04)] dark:shadow-[0_-4px_12px_rgba(0,0,0,0.4)]"
+                  : "bg-slate-100 dark:bg-slate-950/40 text-slate-500 hover:bg-slate-200/80 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-900/60 dark:hover:text-slate-200 z-10 mt-1"
               )}
+              style={{
+                borderBottomColor: isTabActive ? "transparent" : (resolvedTheme === "light" ? "rgb(226, 232, 240)" : "rgba(255, 255, 255, 0.05)")
+              }}
             >
-              <span className="text-xs font-bold">{step.title}</span>
-              <span className={clsx("text-[9px] mt-0.5 font-medium", isActive ? "text-white/80" : "text-slate-500")}>
-                {step.desc}
-              </span>
-              {isDone && (
-                <div className="absolute top-2 right-2 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[8px] font-mono px-1 py-0.25 rounded-md font-bold">
-                  MET
-                </div>
+              <t.icon className={clsx("w-3.5 h-3.5 shrink-0", isTabActive ? "text-evolver-viridian" : "text-slate-500")} />
+              <span>{t.label}</span>
+              {isTabActive && (
+                <div className="absolute top-0 left-0 right-0 h-[2px] bg-evolver-viridian rounded-t-full" />
               )}
             </button>
           );
         })}
       </div>
 
-      {/* Step Render Area */}
-      <div className="flex-1 min-h-0 mb-8">
-        
-        {/* PHASE 1: RETRIEVE DATA (Discovery & Ingestion Pipeline) */}
-        {currentPhase === 1 && (
-          <div className="flex flex-col space-y-6">
-            
-            {/* Extraction Stepper */}
-            <div className="grid grid-cols-4 gap-2 bg-black/20 p-1.5 rounded-xl border border-white/5 z-10 text-xs">
-              {[
-                { sub: 1, title: "1.1 Identify Sources" },
-                { sub: 2, title: "1.2 Audit Global Volumes" },
-                { sub: 3, title: "1.3 Calculate CC Scope" },
-                { sub: 4, title: "1.4 Ingest & Link" }
-              ].map(s => (
-                <button
-                  key={s.sub}
-                  disabled={isProcessing}
-                  onClick={() => setRetrieveSubStep(s.sub)}
-                  className={clsx(
-                    "py-2 rounded-lg text-center font-semibold transition-all",
-                    retrieveSubStep === s.sub
-                      ? "bg-evolver-viridian/25 text-white border border-evolver-viridian"
-                      : "text-slate-400 hover:text-white"
-                  )}
-                >
-                  {s.title}
-                </button>
-              ))}
-            </div>
+      {/* Cabinet Workspace Panel */}
+      <div className="w-full flex flex-col p-8 rounded-3xl border border-slate-200 dark:border-white/5 shadow-2xl relative min-h-[580px] bg-white dark:bg-slate-900/50 backdrop-blur-xl transition-colors duration-300 overflow-y-auto max-h-[85vh] mt-1 z-10">
+          
+          {/* TAB 1: OVERVIEW & SCENARIO INTRO */}
+          {activeTab === "overview" && (
+            <div className="flex-1 flex flex-col justify-between py-2 space-y-6 animate-in fade-in duration-300">
+              
+              {/* Scenario Summary */}
+              <div id="ov-summary" className="p-5 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/5 rounded-3xl space-y-3 scroll-mt-6">
+                <h4 className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Scenario Summary</h4>
+                <p className="text-sm text-slate-700 dark:text-slate-200 leading-relaxed font-light font-sans">
+                  This dashboard automates the cash conversion cycle (CCC) by synchronizing Accounts Receivable and Accounts Payable ledger tables.
+                  By evaluating open invoice lifecycles inside S/4HANA tables (BSID/BSIK) and calculating simulated liquidity runways, the engine stabilizes operating capital while maintaining supply chain integrity.
+                </p>
+              </div>
 
+              {/* Grid block mapping What and Why */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+                
+                {/* What We Are Doing Card */}
+                <div id="ov-what" className="p-5 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/5 rounded-3xl space-y-3 scroll-mt-6">
+                  <h4 className="text-[11px] font-extrabold text-cyan-600 dark:text-cyan-400 uppercase tracking-widest flex items-center gap-2">
+                    <Eye className="w-4.5 h-4.5 text-cyan-600 dark:text-cyan-400" />
+                    What We Are Doing (The Diagnostics)
+                  </h4>
+                  <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-sans">
+                    ARIA establishes an automated, dual-sided audit on Accounts Receivable open ledger items (BSID) and Accounts Payable open invoices (BSIK) to analyze rolling treasury cash conversion cycles.
+                  </p>
+                </div>
+
+                {/* Why We Are Doing It Card */}
+                <div id="ov-why" className="p-5 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/5 rounded-3xl space-y-3 scroll-mt-6">
+                  <h4 className="text-[11px] font-extrabold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest flex items-center gap-2">
+                    <ShieldCheck className="w-4.5 h-4.5 text-emerald-600 dark:text-emerald-400" />
+                    Why We Are Doing It (Value & Compliance)
+                  </h4>
+                  <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-sans">
+                    Optimizing the Cash Conversion Cycle directly expands corporate runway without relying on high-interest commercial bank credit lines. Capturing early-payment discount yields on receivables while extending baseline payables protects working capital margins.
+                  </p>
+                </div>
+
+              </div>
+
+              {/* ARIA CLOSED-LOOP EXECUTION FLOWCHART */}
+              <div id="ov-process" className="p-6 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/5 rounded-3xl space-y-5 relative overflow-hidden scroll-mt-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 dark:border-white/5 pb-3">
+                  <div className="flex items-center gap-2">
+                    <Network className="w-5 h-5 text-evolver-viridian" />
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider font-sans">
+                        ARIA Closed-Loop Execution & Data Flow
+                      </h4>
+                      <p className="text-[10px] text-slate-500 mt-0.5 font-light font-sans">
+                        End-to-end transaction pipeline mapping. Click a phase card to jump into that live operational environment.
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-[9px] font-mono bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded uppercase font-bold tracking-wider self-start sm:self-center">
+                    Interactive Pipeline Map
+                  </span>
+                </div>
+                
+                <div className="relative">
+                  {/* SVG Animated Connector Line */}
+                  <div className="absolute inset-x-12 top-[48px] h-1 hidden md:block z-0 pointer-events-none opacity-40">
+                    <svg className="w-full h-1 overflow-visible">
+                      <line
+                        x1="0%"
+                        y1="50%"
+                        x2="100%"
+                        y2="50%"
+                        stroke="rgba(64, 130, 109, 0.2)"
+                        strokeWidth="3"
+                        strokeLinecap="round"
+                      />
+                      <line
+                        x1="0%"
+                        y1="50%"
+                        x2="100%"
+                        y2="50%"
+                        stroke="#40826D"
+                        strokeWidth="3"
+                        strokeDasharray="8 8"
+                        strokeLinecap="round"
+                        className="animate-dash-fast"
+                      />
+                    </svg>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-5 gap-5 relative z-10 items-stretch">
+                    {(() => {
+                      const stepTabs: TabId[] = ["ingestion", "visualize", "reason", "execute", "evidence"];
+                      const flowSteps = [
+                        { title: "1. Read / Ingest", desc: "Extract outstanding customer invoices and accounts payable lines.", dataIn: "BSID (Open AR), BSIK (Open AP)", dataOut: "PostgreSQL Treasury Cache", icon: Database },
+                        { title: "2. Reconcile", desc: "Model cash runoffs over a 30-day window to locate reserve breaches.", dataIn: "T052 Payment Terms indices", dataOut: "Runway Projections Matrix", icon: Activity },
+                        { title: "3. Authorize", desc: "Collect cryptographically signed owner permission to execute sweeps.", dataIn: "Manual Review & approval", dataOut: "sha256 Compliance Hash", icon: FileText },
+                        { title: "4. Execute", desc: "Shift payables baseline dates and capture early discount terms.", dataIn: "BAPI_CUSTOMER_EXTENS_CHG", dataOut: "BSEG-ZLSPR Payment Block", icon: Terminal },
+                        { title: "5. Audit Ledger", desc: "Push cleared results back to consolidate corporate close balances.", dataIn: "Universal Journal ledger lines", dataOut: "TIM-WC voucher receipt", icon: CheckCircle2 }
+                      ];
+
+                      return flowSteps.map((step, idx) => {
+                        const targetTab = stepTabs[idx];
+                        return (
+                          <button
+                            key={idx}
+                            onClick={() => handleTabChange(targetTab)}
+                            className="text-left p-4.5 bg-white dark:bg-slate-950/70 border border-slate-200 dark:border-white/5 rounded-2xl flex flex-col justify-between text-xs space-y-4 cursor-pointer hover:border-evolver-viridian/40 hover:bg-slate-50 dark:hover:bg-slate-950 hover:scale-[1.02] hover:-translate-y-1 hover:shadow-[0_4px_25px_rgba(64,130,109,0.1)] dark:hover:shadow-[0_4px_25px_rgba(64,130,109,0.15)] transition-all duration-300 group select-none active:scale-[0.98] w-full"
+                          >
+                            <div className="space-y-2.5">
+                              {/* Card Header */}
+                              <div className="flex items-center justify-between">
+                                <span className="text-[9px] font-mono font-bold tracking-widest px-2 py-0.5 rounded bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5 text-slate-500 dark:text-slate-400 group-hover:text-evolver-viridian group-hover:border-evolver-viridian/20 transition-all">
+                                  PHASE 0{idx + 1}
+                                </span>
+                                <span className="text-[9px] font-semibold text-slate-400 dark:text-slate-500 group-hover:text-emerald-500 dark:group-hover:text-emerald-400 transition-colors flex items-center gap-0.5">
+                                  Live ➔
+                                </span>
+                              </div>
+
+                              {/* Step Title */}
+                              <div className="flex items-center gap-2 text-slate-900 dark:text-white font-bold">
+                                <div className="p-1.5 rounded-lg bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5 text-evolver-viridian group-hover:bg-evolver-viridian group-hover:text-slate-950 dark:group-hover:text-slate-950 transition-all shrink-0">
+                                  <step.icon className="w-4 h-4" />
+                                </div>
+                                <span className="text-xs group-hover:text-evolver-viridian transition-colors font-extrabold">{step.title}</span>
+                              </div>
+
+                              {/* Description */}
+                              <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-normal font-light group-hover:text-slate-800 dark:group-hover:text-slate-300 transition-colors line-clamp-3">
+                                {step.desc}
+                              </p>
+                            </div>
+
+                            {/* Data Flow Consoles */}
+                            <div className="pt-3 border-t border-slate-200 dark:border-white/5 space-y-2 font-mono text-[9px] leading-normal w-full">
+                              <div className="bg-slate-50 dark:bg-slate-950/80 rounded-xl p-2.5 border border-slate-200 dark:border-white/5 space-y-1 group-hover:border-cyan-500/20 transition-all">
+                                <div className="flex items-center gap-1 text-[7.5px] font-extrabold text-cyan-600 dark:text-cyan-400 uppercase tracking-wider">
+                                  <Database className="w-2.5 h-2.5 shrink-0" />
+                                  <span>Data In (SAP)</span>
+                                </div>
+                                <span className="text-[9px] font-bold text-slate-700 dark:text-slate-300 block truncate" title={step.dataIn}>
+                                  {step.dataIn}
+                                </span>
+                              </div>
+                              <div className="bg-slate-50 dark:bg-slate-950/80 rounded-xl p-2.5 border border-slate-200 dark:border-white/5 space-y-1 group-hover:border-emerald-500/20 transition-all">
+                                <div className="flex items-center gap-1 text-[7.5px] font-extrabold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+                                  <Terminal className="w-2.5 h-2.5 shrink-0" />
+                                  <span>Data Out (Action)</span>
+                                </div>
+                                <span className="text-[9px] font-bold text-slate-700 dark:text-slate-300 block truncate" title={step.dataOut}>
+                                  {step.dataOut}
+                                </span>
+                              </div>
+                            </div>
+                          </button>
+                        );
+                      });
+                    })()}
+                  </div>
+                </div>
+
+                {/* Helpful Instruction Note */}
+                <div className="flex items-start gap-2 p-3 bg-evolver-viridian/5 border border-evolver-viridian/10 rounded-2xl text-[10px] text-slate-500 dark:text-slate-400 font-light">
+                  <Info className="w-4 h-4 text-evolver-viridian shrink-0 mt-0.5" />
+                  <span>
+                    <strong>Interactive Flow Playground:</strong> The cards above represent the operational lifecycle stages of this closed-loop scenario. You can <strong>click any card</strong> to directly jump into its respective dashboard tab and inspect active OData lines, graphs, checks, or logs.
+                  </span>
+                </div>
+              </div>
+
+              {/* Math TeX formula card & Database mappings */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch pt-2">
+                
+                {/* Mathematical formulation */}
+                <div id="ov-objective" className="lg:col-span-6 flex flex-col bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/5 rounded-3xl p-5 justify-between scroll-mt-6">
+                  <h4 className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest mb-2.5">Objective Function Model</h4>
+                  <div className="text-xs font-mono font-bold text-center py-4 bg-slate-100 dark:bg-slate-950/80 rounded-2xl border border-slate-200 dark:border-white/5 text-cyan-600 dark:text-cyan-400 shadow-inner overflow-x-auto whitespace-nowrap">
+                    {"\\text{Minimize } CCC \\implies \\Delta \\text{Cash Runway} > \\text{Safety Buffer}"}
+                  </div>
+                  <div className="text-[10px] leading-relaxed text-slate-500 dark:text-slate-400 mt-3 font-sans">
+                    💡 <strong>Mathematical Constraint:</strong> Early payment discount incentives accelerate customer collections, shifting cash receipts forward, while baseline extensions defer payables, stabilizing critical reserve buffers.
+                  </div>
+                </div>
+
+                {/* Database dictionary maps */}
+                <div id="ov-tables" className="lg:col-span-6 flex flex-col justify-between space-y-2 scroll-mt-6">
+                  <h4 className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest">In-Scope SAP Transparent Tables</h4>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      "BSID (AR Open Items)",
+                      "BSIK (AP Liabilities)",
+                      "T052 (Payment Terms Master)",
+                      "ACDOCA (Universal Ledger)"
+                    ].map((t, idx) => (
+                      <div key={idx} className="p-3 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/5 rounded-2xl font-mono text-[10.5px] text-slate-600 dark:text-slate-300 flex flex-col shadow-sm">
+                        <span className="font-extrabold text-slate-900 dark:text-white">{t.split(' ')[0]}</span>
+                        <span className="text-[8.5px] text-slate-500 mt-0.5">{t.includes('(') ? t.split('(')[1].replace(')', '') : "Table"}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+              </div>
+
+              <div className="pt-2 text-right">
+                <button
+                  onClick={() => handleTabChange("ingestion")}
+                  className="py-3 px-6 rounded-xl bg-evolver-viridian hover:bg-evolver-viridian-light text-white text-xs font-bold transition-all shadow-lg inline-flex items-center space-x-1 cursor-pointer font-sans"
+                >
+                  <span>Proceed to Data Ingestion</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
+
+        {/* TAB 2: INGESTION / READ (SAP DATA) */}
+        {activeTab === "ingestion" && (
+          <div className="flex-grow flex flex-col justify-between py-2 space-y-6 animate-in fade-in duration-300">
+            
             {/* Stepper split view */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+            <div id="ing-pipeline" className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch flex-1 scroll-mt-6">
               
               {/* Left Column: Stage Console */}
               <div className="lg:col-span-5 flex flex-col">
                 <div className="glass-panel p-6 rounded-2xl flex flex-col space-y-5 shadow-lg h-full justify-between">
                   
-                  {/* Sub-step 1.1: Identify */}
-                  {retrieveSubStep === 1 && (
-                    <div className="space-y-4">
-                      <h3 className="text-base font-bold text-slate-200 flex items-center border-b border-white/5 pb-2.5">
-                        <Network className="w-5 h-5 mr-2 text-evolver-viridian" />
-                        Step 1.1: Identify S/4HANA Sources
-                      </h3>
-                      <p className="text-xs text-slate-400 leading-relaxed">
-                        Treasury agents must preserve verifiable typographic links. 
-                        Aria maps standard relational extractions across the key relational tables (BSIK, BSID, T052, ACDOCA).
-                      </p>
-                      <div className="space-y-2.5 pt-2">
-                        {sources.map(s => (
-                          <div key={s.id} className="p-3 bg-white/5 rounded-xl border border-white/5 flex items-center justify-between text-xs">
-                            <div>
-                              <div className="font-bold text-slate-200 font-mono">{s.id} ({s.name})</div>
-                              <div className="text-[10px] text-slate-500 mt-0.5">{s.desc}</div>
-                            </div>
-                            <span className="px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[9px] font-mono font-bold">
-                              {s.status}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                  <div className="space-y-4">
+                    <h3 className="text-base font-bold text-slate-800 dark:text-slate-200 flex items-center border-b border-slate-200 dark:border-white/5 pb-2.5">
+                      <Network className="w-5 h-5 mr-2 text-evolver-viridian" />
+                      S/4HANA OData Ingestion Pipeline
+                    </h3>
+                    <p className="text-xs text-slate-655 dark:text-slate-400 leading-relaxed font-sans">
+                      Establish secure RFC handshake to S/4HANA CAL Gateway and execute real-time OData extractions for Company Code <strong>{companyCode}</strong>.
+                      Raw records are verified against SAP Transparent Tables and physically replicated into the high-speed Postgres Cache DB.
+                    </p>
 
-                  {/* Sub-step 1.2: Audit Global */}
-                  {retrieveSubStep === 2 && (
-                    <div className="space-y-4">
-                      <h3 className="text-base font-bold text-slate-200 flex items-center border-b border-white/5 pb-2.5">
-                        <BarChart2 className="w-5 h-5 mr-2 text-evolver-viridian" />
-                        Step 1.2: Audit Global Volumes
-                      </h3>
-                      <p className="text-xs text-slate-400 leading-relaxed">
-                        Establish real-time pings to calculate the global volumes of the target datasets in your CAL ERP. This provides the total scale of the ledger before filtering.
-                      </p>
-                      
-                      {counts.global.ledger > 0 && (
-                        <div className="space-y-3 pt-2">
-                          <div className="p-3 bg-white/5 rounded-xl border border-white/5 flex items-center justify-between text-xs">
-                            <span className="text-slate-400">Global G/L Accounts (T052):</span>
-                            <span className="font-mono text-white font-bold">{counts.global.glAccounts.toLocaleString()}</span>
-                          </div>
-                          <div className="p-3 bg-white/5 rounded-xl border border-white/5 flex items-center justify-between text-xs">
-                            <span className="text-slate-400">Global Ledger Items (ACDOCA):</span>
-                            <span className="font-mono text-white font-bold">{counts.global.ledger.toLocaleString()}</span>
-                          </div>
-                        </div>
-                      )}
-
-                      {pipelineLog.length > 0 && (
-                        <div className="bg-black/60 rounded-xl border border-white/5 p-4 font-mono text-[9.5px] leading-relaxed text-slate-400 h-28 overflow-y-auto">
-                          {pipelineLog.map((log, i) => (
-                            <div key={i} className={clsx(log.startsWith("✅") ? "text-emerald-400" : "")}>{log}</div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Sub-step 1.3: Filter Scope */}
-                  {retrieveSubStep === 3 && (
-                    <div className="space-y-4">
-                      <h3 className="text-base font-bold text-slate-200 flex items-center border-b border-white/5 pb-2.5">
-                        <AlertCircle className="w-5 h-5 mr-2 text-evolver-viridian" />
-                        Step 1.3: Define Scope by Company Code
-                      </h3>
-                      <p className="text-xs text-slate-400 leading-relaxed">
-                        Filter operational targets specifically by the target Company Code to define scope. In multi-company S/4HANA systems, this isolates the ledger density.
-                      </p>
-
-                      <div className="space-y-1.5 mt-2">
-                        <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
-                          Target Company Code
+                    {/* Dynamic Scenario Ingestion Filters */}
+                    <div className="grid grid-cols-2 gap-3 p-3 bg-slate-100/50 dark:bg-white/5 border border-slate-200 dark:border-white/5 rounded-xl font-sans text-xs">
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
+                          Company Code (BUKRS)
                         </label>
                         <select
                           value={companyCode}
                           disabled={isProcessing}
-                          onChange={(e) => setCompanyCode(e.target.value)}
-                          className="w-full bg-black/40 border border-white/10 rounded-xl py-2 px-3 text-xs text-white focus:outline-none focus:border-evolver-viridian/50 transition-all font-mono"
+                          onChange={(e) => {
+                            setCompanyCode(e.target.value);
+                            setArItems([]);
+                            setApItems([]);
+                            setCounts(prev => ({
+                              ...prev,
+                              filtered: { ledger: 0, arItems: 0, apItems: 0 }
+                            }));
+                          }}
+                          className="w-full px-2 py-1.5 text-[10px] font-sans bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-lg text-slate-700 dark:text-slate-350 focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:opacity-50 transition-all cursor-pointer"
                         >
-                          <option value="1710">1710 - US Operations (Domestic)</option>
+                          <option value="1710">1710 - US Operations</option>
                           <option value="1010">1010 - US Subsidiary</option>
-                          <option value="1000">1000 - European Headquarters (Germany)</option>
-                          <option value="1810">1810 - Canadian Operations</option>
+                          <option value="1000">1000 - European HQ</option>
+                          <option value="1810">1810 - Canadian Ops</option>
                         </select>
                       </div>
 
-                      {counts.filtered.ledger > 0 && (
-                        <div className="grid grid-cols-3 gap-2.5 pt-2 text-center text-xs">
-                          <div className="p-2.5 bg-white/5 border border-white/5 rounded-xl">
-                            <div className="text-[9px] text-slate-500">In Scope Ledger</div>
-                            <div className="font-mono text-slate-200 font-bold mt-1">{counts.filtered.ledger.toLocaleString()}</div>
-                          </div>
-                          <div className="p-2.5 bg-white/5 border border-white/5 rounded-xl">
-                            <div className="text-[9px] text-slate-500">AR Invoices</div>
-                            <div className="font-mono text-cyan-400 font-bold mt-1">{counts.filtered.arItems.toLocaleString()}</div>
-                          </div>
-                          <div className="p-2.5 bg-white/5 border border-white/5 rounded-xl">
-                            <div className="text-[9px] text-slate-500">AP Liabilities</div>
-                            <div className="font-mono text-emerald-400 font-bold mt-1">{counts.filtered.apItems.toLocaleString()}</div>
-                          </div>
-                        </div>
-                      )}
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
+                          Document Scope ($filter)
+                        </label>
+                        <select
+                          value={wcDocScope}
+                          onChange={(e) => setWcDocScope(e.target.value as any)}
+                          disabled={isProcessing}
+                          className="w-full px-2 py-1.5 text-[10px] font-sans bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-lg text-slate-700 dark:text-slate-355 focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:opacity-50 transition-all cursor-pointer"
+                        >
+                          <option value="all">Ledger Invoices (BSID/BSIK)</option>
+                          <option value="orders">Purchase Orders (EKKO/EKPO)</option>
+                          <option value="sales">Sales Orders (VBAK/VBAP)</option>
+                        </select>
+                      </div>
 
-                      {pipelineLog.length > 0 && (
-                        <div className="bg-black/60 rounded-xl border border-white/5 p-4 font-mono text-[9.5px] leading-relaxed text-slate-400 h-24 overflow-y-auto">
-                          {pipelineLog.map((log, i) => (
-                            <div key={i} className={clsx(log.startsWith("✅") ? "text-emerald-400" : "")}>{log}</div>
-                          ))}
-                        </div>
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
+                          Min Order Value ($)
+                        </label>
+                        <select
+                          value={minOrderValue}
+                          onChange={(e) => setMinOrderValue(Number(e.target.value))}
+                          disabled={isProcessing || wcDocScope === "all"}
+                          className="w-full px-2 py-1.5 text-[10px] font-sans bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-lg text-slate-700 dark:text-slate-350 focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:opacity-50 transition-all cursor-pointer"
+                        >
+                          <option value="0">All Orders (Value {'>='} 0)</option>
+                          <option value="50000">{'>='} $50,000</option>
+                          <option value="100000">{'>='} $100,000</option>
+                        </select>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
+                          Records Page Limit ($top)
+                        </label>
+                        <select
+                          value={topLimit}
+                          onChange={(e) => setTopLimit(e.target.value)}
+                          disabled={isProcessing}
+                          className="w-full px-2 py-1.5 text-[10px] font-sans bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-lg text-slate-700 dark:text-slate-350 focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:opacity-50 transition-all cursor-pointer"
+                        >
+                          <option value="all">No Page Limit ($top = full)</option>
+                          <option value="100">100 Rows ($top = 100)</option>
+                          <option value="5">5 Rows (Quick Pitch)</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Ingestion progress console logs */}
+                    <div className="bg-slate-900 border border-slate-850 rounded-xl p-4 font-mono text-[9.5px] leading-relaxed text-slate-400 h-64 overflow-y-auto shadow-inner">
+                      {pipelineLog.length === 0 ? (
+                        <div className="text-slate-500 italic">Awaiting RFC connection handshake... Click "Replicate & Sync" below.</div>
+                      ) : (
+                        pipelineLog.map((log, i) => (
+                          <div 
+                            key={i} 
+                            className={clsx(
+                              "font-mono",
+                              log.includes("✅") ? "text-emerald-400" :
+                              log.includes("❌") ? "text-rose-400 font-bold" :
+                              log.includes("🎉") ? "text-cyan-400 font-bold" : "text-slate-350"
+                            )}
+                          >
+                            {log}
+                          </div>
+                        ))
                       )}
                     </div>
-                  )}
-
-                  {/* Sub-step 1.4: Ingest and Link */}
-                  {retrieveSubStep === 4 && (
-                    <div className="space-y-4">
-                      <h3 className="text-base font-bold text-slate-200 flex items-center border-b border-white/5 pb-2.5">
-                        <ShieldCheck className="w-5 h-5 mr-2 text-evolver-viridian" />
-                        Step 1.4: Ingest & Link Lineage
-                      </h3>
-                      <p className="text-xs text-slate-400 leading-relaxed">
-                        Trigger OData extractions for transaction items, link receivables to historical averages, and physically replicate them into our local PostgreSQL database.
-                      </p>
-
-                      {pipelineLog.length > 0 && (
-                        <div className="bg-black/60 rounded-xl border border-white/5 p-4 font-mono text-[9.5px] leading-relaxed text-slate-400 h-36 overflow-y-auto">
-                          {pipelineLog.map((log, i) => (
-                            <div key={i} className={clsx(log.startsWith("✅") ? "text-emerald-400" : log.startsWith("🎉") ? "text-emerald-300 font-bold" : "")}>{log}</div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
+                  </div>
 
                   {/* Operational triggers */}
-                  <div className="pt-4 border-t border-white/5">
+                  <div className="pt-4 border-t border-slate-200 dark:border-white/5">
                     {isProcessing ? (
                       <button
                         disabled
-                        className="w-full py-3.5 rounded-xl bg-slate-800 text-slate-400 text-xs font-semibold cursor-not-allowed flex items-center justify-center space-x-2 border border-white/5"
+                        className="w-full py-3.5 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-400 text-xs font-semibold cursor-not-allowed flex items-center justify-center space-x-2 border border-slate-200 dark:border-white/5"
                       >
                         <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
-                        <span>Processing Live Ingestion...</span>
+                        <span>Extracting open ledgers from S/4HANA...</span>
                       </button>
-                    ) : retrieveSubStep === 1 ? (
-                      <button
-                        onClick={() => setRetrieveSubStep(2)}
-                        className="w-full py-3.5 rounded-xl bg-evolver-viridian hover:bg-evolver-viridian-light text-white text-xs font-bold transition-all shadow-lg flex items-center justify-center space-x-1"
-                      >
-                        <span>Audit Live Global Volumes</span>
-                        <ArrowRight className="w-4 h-4" />
-                      </button>
-                    ) : retrieveSubStep === 2 ? (
-                      <div className="space-y-3">
-                        <button
-                          onClick={handleAuditGlobalVolumes}
-                          className="w-full py-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold transition-all border border-white/10 flex items-center justify-center space-x-1.5"
-                        >
-                          <FolderSync className="w-4.5 h-4.5" />
-                          <span>Audit Global Volumes</span>
-                        </button>
-                        {counts.global.ledger > 0 && (
-                          <button
-                            onClick={() => setRetrieveSubStep(3)}
-                            className="w-full py-3.5 rounded-xl bg-evolver-viridian hover:bg-evolver-viridian-light text-white text-xs font-bold transition-all shadow-lg flex items-center justify-center space-x-1"
-                          >
-                            <span>Define Company Code Scope</span>
-                            <ArrowRight className="w-4 h-4" />
-                          </button>
-                        )}
-                      </div>
-                    ) : retrieveSubStep === 3 ? (
-                      <div className="space-y-3">
-                        <button
-                          onClick={handleCalculateFilteredScope}
-                          className="w-full py-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold transition-all border border-white/10 flex items-center justify-center space-x-1.5"
-                        >
-                          <FolderSync className="w-4.5 h-4.5" />
-                          <span>Calculate Filtered Scope</span>
-                        </button>
-                        {counts.filtered.ledger > 0 && (
-                          <button
-                            onClick={() => setRetrieveSubStep(4)}
-                            className="w-full py-3.5 rounded-xl bg-evolver-viridian hover:bg-evolver-viridian-light text-white text-xs font-bold transition-all shadow-lg flex items-center justify-center space-x-1"
-                          >
-                            <span>Ingest & Link Pipeline</span>
-                            <ArrowRight className="w-4 h-4" />
-                          </button>
-                        )}
-                      </div>
-                    ) : (
+                    ) : arItems.length > 0 ? (
                       <div className="space-y-3">
                         <button
                           onClick={handleIngestAndLink}
-                          className="w-full py-3.5 rounded-xl bg-evolver-viridian hover:bg-evolver-viridian-light text-white text-xs font-bold transition-all shadow-lg flex items-center justify-center space-x-2"
+                          className="w-full py-3.5 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-white text-xs font-bold transition-all border border-slate-300 dark:border-white/10 flex items-center justify-center space-x-2 cursor-pointer"
                         >
-                          <FolderSync className="w-4.5 h-4.5 animate-spin" />
-                          <span>Ingest & Sync PostgreSQL Cache</span>
+                          <FolderSync className="w-4.5 h-4.5" />
+                          <span>Re-Sync S/4HANA Ledger Cache</span>
                         </button>
-                        {arItems.length > 0 && (
-                          <button
-                            onClick={() => setCurrentPhase(2)}
-                            className="w-full py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-lg flex items-center justify-center space-x-1 group"
-                          >
-                            <span>Ingestion Metric Complete ➜ Analyze</span>
-                          </button>
-                        )}
+                        <button
+                          onClick={() => handleTabChange("visualize")}
+                          className="w-full py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-lg flex items-center justify-center space-x-1 group cursor-pointer animate-pulse"
+                        >
+                          <span>Ingestion Complete ➜ Simulate Runway</span>
+                          <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                        </button>
                       </div>
+                    ) : (
+                      <button
+                        onClick={handleIngestAndLink}
+                        className="w-full py-3.5 rounded-xl bg-evolver-viridian hover:bg-evolver-viridian-light text-white text-xs font-bold transition-all shadow-lg flex items-center justify-center space-x-2 cursor-pointer"
+                      >
+                        <FolderSync className="w-4.5 h-4.5" />
+                        <span>Replicate & Sync S/4HANA Ledger</span>
+                      </button>
                     )}
                   </div>
                 </div>
               </div>
 
               {/* Right Column: Schema/Table Visual State */}
-              <div className="lg:col-span-7 flex flex-col">
-                <div className="glass-panel p-6 rounded-2xl flex flex-col space-y-4 shadow-lg h-full">
+              <div className="lg:col-span-7 flex flex-col font-sans">
+                <div className="glass-panel p-6 rounded-2xl flex flex-col space-y-4 shadow-lg h-full justify-between">
                   
-                  {/* If we are at Step 1.1 or 1.2: Show metadata grid */}
-                  {retrieveSubStep <= 2 && (
+                  {arItems.length === 0 ? (
+                    // Ready to extract state
                     <div className="flex-1 flex flex-col justify-between">
                       <div>
-                        <h3 className="text-sm font-bold text-slate-300 flex items-center mb-4">
-                          <Database className="w-4 h-4 mr-2 text-cyan-400" />
+                        <h3 className="text-sm font-bold text-slate-800 dark:text-slate-300 flex items-center mb-4">
+                          <Database className="w-4 h-4 mr-2 text-cyan-600 dark:text-cyan-400" />
                           Active Data Dictionary Map (Azure PostgreSQL Cache)
                         </h3>
-                        <div className="space-y-3 text-xs leading-relaxed text-slate-400">
+                        <div className="space-y-3 text-xs leading-relaxed text-slate-655 dark:text-slate-400">
                           <p>
-                            Your Azure PostgreSQL database cache has successfully replicated the massive S/4HANA metadata dictionary, containing <strong>907,077 tables</strong>, <strong>10,340,508 fields</strong>, and <strong>1,187,826 relations</strong>. 
+                            Your Azure PostgreSQL database cache has successfully mapped the massive S/4HANA metadata dictionary, containing <strong>907,077 tables</strong> and relations. 
                           </p>
                           <p>
-                            We have verified the presence of the primary G/L schema structures:
+                            Schema reader has verified the presence of the primary G/L transparent table structures:
                           </p>
-                          <div className="grid grid-cols-2 gap-3 pt-2">
-                            <div className="p-3 bg-white/5 border border-white/5 rounded-xl">
-                              <div className="font-bold text-slate-300">AR Ledger cache (BSID)</div>
-                              <div className="text-[10px] text-emerald-400 font-mono mt-0.5">VERIFIED IN DD02L</div>
+                          <div className="grid grid-cols-2 gap-3 pt-2 font-mono">
+                            <div className="p-3 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5 rounded-xl">
+                              <div className="font-bold text-slate-800 dark:text-slate-300 text-xs font-sans">AR Ledger cache (BSID)</div>
+                              <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono mt-0.5">VERIFIED IN DD02L</div>
                             </div>
-                            <div className="p-3 bg-white/5 border border-white/5 rounded-xl">
-                              <div className="font-bold text-slate-300">AP Ledger cache (BSIK)</div>
-                              <div className="text-[10px] text-emerald-400 font-mono mt-0.5">VERIFIED IN DD02L</div>
-                            </div>
-                            <div className="p-3 bg-white/5 border border-white/5 rounded-xl">
-                              <div className="font-bold text-slate-300">Payment Terms (T052)</div>
-                              <div className="text-[10px] text-emerald-400 font-mono mt-0.5">VERIFIED IN DD02L</div>
-                            </div>
-                            <div className="p-3 bg-white/5 border border-white/5 rounded-xl">
-                              <div className="font-bold text-slate-300">Universal Ledger (ACDOCA)</div>
-                              <div className="text-[10px] text-emerald-400 font-mono mt-0.5">VERIFIED IN DD02L</div>
+                            <div className="p-3 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5 rounded-xl">
+                              <div className="font-bold text-slate-800 dark:text-slate-300 text-xs font-sans">AP Ledger cache (BSIK)</div>
+                              <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono mt-0.5">VERIFIED IN DD02L</div>
                             </div>
                           </div>
                         </div>
                       </div>
                       
-                      <div className="p-4 rounded-xl bg-cyan-500/5 border border-cyan-500/10 text-cyan-400 text-xs font-semibold mt-4">
-                        💡 <strong>Lineage Insight:</strong> By auditing global record volumes, we establish baseline table sizes prior to applying the localized Company Code scope query parameters.
+                      <div className="p-4 rounded-xl bg-cyan-50 dark:bg-cyan-500/5 border border-cyan-200 dark:border-cyan-500/10 text-cyan-800 dark:text-cyan-400 text-xs font-semibold mt-4 leading-relaxed">
+                        💡 <strong>Lineage Insight:</strong> Ingesting the ledger replicates raw open AR and AP postings directly into PostgreSQL cached tables. Once replicated, full historical operational data is exposed to dynamic liquidity forecast models.
                       </div>
                     </div>
-                  )}
-
-                  {/* If we are at Step 1.3: Show filtered stats */}
-                  {retrieveSubStep === 3 && (
-                    <div className="flex-1 flex flex-col justify-between">
-                      <div>
-                        <h3 className="text-sm font-bold text-slate-300 flex items-center mb-4">
-                          <AlertCircle className="w-4.5 h-4.5 mr-2 text-amber-500" />
-                          Company Code {companyCode} Scope Definition
-                        </h3>
-                        {counts.filtered.ledger === 0 ? (
-                          <div className="py-20 flex flex-col items-center justify-center text-slate-500 space-y-2">
-                            <AlertCircle className="w-10 h-10 opacity-20" />
-                            <p className="text-xs">Awaiting filtered scope counts. Click "Calculate Filtered Scope".</p>
-                          </div>
-                        ) : (
-                          <div className="space-y-4 text-xs">
-                            <p className="text-slate-400 leading-relaxed">
-                              S/4HANA filters successfully returned scope parameters. A total of <strong>{counts.filtered.ledger.toLocaleString()} journal ledger items</strong> are active for Company Code <strong>{companyCode}</strong>:
-                            </p>
-                            <div className="p-4 bg-white/5 border border-white/5 rounded-xl space-y-2">
-                              <div className="flex justify-between">
-                                <span className="text-slate-400">OData Target:</span>
-                                <span className="font-mono text-slate-300">API_JOURNALENTRYITEMBASIC_SRV</span>
-                              </div>
-                              <div className="flex justify-between">
-                                <span className="text-slate-400">OData filter:</span>
-                                <span className="font-mono text-cyan-400">CompanyCode eq '{companyCode}'</span>
-                              </div>
-                              <div className="flex justify-between">
-                                <span className="text-slate-400">Chart of Accounts:</span>
-                                <span className="font-mono text-slate-300">{companyCode === "1000" ? "INT" : "YCOA"}</span>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                      
-                      <div className="p-4 rounded-xl bg-amber-500/5 border border-amber-500/10 text-amber-400 text-xs font-semibold mt-4">
-                        💡 <strong>Lineage Insight:</strong> Calculating filtered scope isolates only records relevant to Company Code {companyCode}, drastically reducing memory footprint during extraction.
-                      </div>
-                    </div>
-                  )}
-
-                  {/* If we are at Step 1.4: Show real records table */}
-                  {retrieveSubStep === 4 && (
+                  ) : (
+                    // Ingested cache datatable view
                     <div className="flex-1 flex flex-col justify-between">
                       <div>
                         <div className="flex items-center justify-between mb-4">
-                          <h3 className="text-sm font-bold text-slate-300 flex items-center">
-                            <Database className="w-4 h-4 mr-2 text-cyan-400" />
+                          <h3 className="text-sm font-bold text-slate-800 dark:text-slate-300 flex items-center">
+                            <Database className="w-4 h-4 mr-2 text-cyan-600 dark:text-cyan-400" />
                             PostgreSQL Cloud Database Cache
                           </h3>
-                          <div className="flex bg-black/40 rounded-lg p-0.5 border border-white/5 text-[10px]">
+                          <div className="flex bg-slate-200/50 dark:bg-black/40 rounded-lg p-0.5 border border-slate-200 dark:border-white/5 text-[10px]">
                             <button
                               onClick={() => setActiveDbTab("ar")}
                               className={clsx(
-                                "px-2.5 py-1 rounded-md font-semibold transition-all",
+                                "px-2.5 py-1 rounded-md font-semibold transition-all cursor-pointer select-none",
                                 activeDbTab === "ar"
-                                  ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 font-bold"
-                                  : "text-slate-400 hover:text-white"
+                                  ? "bg-cyan-500/20 text-cyan-650 dark:text-cyan-400 border border-cyan-500/30 font-bold"
+                                  : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white"
                               )}
                             >
                               AR Invoices ({arItems.length})
@@ -821,10 +944,10 @@ export default function AriaFinanceDashboard() {
                             <button
                               onClick={() => setActiveDbTab("ap")}
                               className={clsx(
-                                "px-2.5 py-1 rounded-md font-semibold transition-all",
+                                "px-2.5 py-1 rounded-md font-semibold transition-all cursor-pointer select-none",
                                 activeDbTab === "ap"
-                                  ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold"
-                                  : "text-slate-400 hover:text-white"
+                                  ? "bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 font-bold"
+                                  : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white"
                               )}
                             >
                               AP Liabilities ({apItems.length})
@@ -833,84 +956,71 @@ export default function AriaFinanceDashboard() {
                         </div>
 
                         {activeDbTab === "ar" ? (
-                          arItems.length === 0 ? (
-                            <div className="py-20 flex flex-col items-center justify-center text-slate-500 space-y-2">
-                              <Database className="w-10 h-10 opacity-20" />
-                              <p className="text-xs">PostgreSQL table empty. Click "Ingest & Sync PostgreSQL Cache" to execute replication.</p>
-                            </div>
-                          ) : (
-                            <div className="overflow-x-auto max-h-[280px]">
-                              <table className="w-full text-left text-xs text-slate-300 font-sans border-collapse">
-                                <thead>
-                                  <tr className="border-b border-white/10 text-slate-400 font-semibold uppercase tracking-wider text-[9px] bg-white/5">
-                                    <th className="py-2 px-3">Doc</th>
-                                    <th className="py-2 px-3">Customer ID</th>
-                                    <th className="py-2 px-3">Customer Name</th>
-                                    <th className="py-2 px-3">G/L Account</th>
-                                    <th className="py-2 px-3">Outstanding Amount</th>
-                                    <th className="py-2 px-3">Posting Date</th>
+                          <div className="overflow-x-auto max-h-[480px] scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-750">
+                            <table className="w-full text-left text-xs text-slate-655 dark:text-slate-300 font-sans border-collapse font-sans">
+                              <thead>
+                                <tr className="border-b border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider text-[9px] bg-slate-100 dark:bg-white/5 font-sans">
+                                  <th className="py-2 px-3">Doc</th>
+                                  <th className="py-2 px-3">Customer ID</th>
+                                  <th className="py-2 px-3">Customer Name</th>
+                                  <th className="py-2 px-3">G/L Account</th>
+                                  <th className="py-2 px-3">Outstanding Amount</th>
+                                  <th className="py-2 px-3">Posting Date</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {arItems.map((item, idx) => (
+                                  <tr key={idx} className="border-b border-slate-100 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
+                                    <td className="py-2 px-3 font-mono text-[10.5px]">{item.id.split('-')[0]}</td>
+                                    <td className="py-2 px-3 font-mono font-bold text-slate-800 dark:text-white">{item.customer}</td>
+                                    <td className="py-2 px-3 text-slate-700 dark:text-slate-300">{item.customerName}</td>
+                                    <td className="py-2 px-3 text-slate-500 dark:text-slate-400 font-mono text-[10px]">{item.glAccount}</td>
+                                    <td className="py-2 px-3 font-bold font-mono text-cyan-600 dark:text-cyan-400">${item.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                                    <td className="py-2 px-3 text-slate-500 dark:text-slate-400 font-mono text-[10px]">{item.postingDate}</td>
                                   </tr>
-                                </thead>
-                                <tbody>
-                                  {arItems.map((item, idx) => (
-                                    <tr key={idx} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                                      <td className="py-2 px-3 font-mono">{item.id}</td>
-                                      <td className="py-2 px-3 font-mono font-bold text-white">{item.customer}</td>
-                                      <td className="py-2 px-3 text-slate-300">{item.customerName}</td>
-                                      <td className="py-2 px-3 text-slate-400 font-mono">{item.glAccount}</td>
-                                      <td className="py-2 px-3 font-bold font-mono text-cyan-400">${item.amount.toLocaleString()}</td>
-                                      <td className="py-2 px-3 text-slate-400 font-mono">{item.postingDate}</td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                            </div>
-                          )
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
                         ) : (
-                          apItems.length === 0 ? (
-                            <div className="py-20 flex flex-col items-center justify-center text-slate-500 space-y-2">
-                              <Database className="w-10 h-10 opacity-20" />
-                              <p className="text-xs">PostgreSQL table empty. Click "Ingest & Sync PostgreSQL Cache" to execute replication.</p>
-                            </div>
-                          ) : (
-                            <div className="overflow-x-auto max-h-[280px]">
-                              <table className="w-full text-left text-xs text-slate-300 font-sans border-collapse">
-                                <thead>
-                                  <tr className="border-b border-white/10 text-slate-400 font-semibold uppercase tracking-wider text-[9px] bg-white/5">
-                                    <th className="py-2 px-3">Doc</th>
-                                    <th className="py-2 px-3">Vendor ID</th>
-                                    <th className="py-2 px-3">Vendor Name</th>
-                                    <th className="py-2 px-3">G/L Account</th>
-                                    <th className="py-2 px-3">Outstanding Amount</th>
-                                    <th className="py-2 px-3">Posting Date</th>
+                          <div className="overflow-x-auto max-h-[480px] scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-750">
+                            <table className="w-full text-left text-xs text-slate-655 dark:text-slate-300 font-sans border-collapse">
+                              <thead>
+                                <tr className="border-b border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider text-[9px] bg-slate-100 dark:bg-white/5">
+                                  <th className="py-2 px-3">Doc</th>
+                                  <th className="py-2 px-3">Vendor ID</th>
+                                  <th className="py-2 px-3">Vendor Name</th>
+                                  <th className="py-2 px-3">G/L Account</th>
+                                  <th className="py-2 px-3">Outstanding Amount</th>
+                                  <th className="py-2 px-3">Posting Date</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {apItems.map((item, idx) => (
+                                  <tr key={idx} className="border-b border-slate-100 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
+                                    <td className="py-2 px-3 font-mono text-[10.5px]">{item.id.split('-')[0]}</td>
+                                    <td className="py-2 px-3 font-mono font-bold text-slate-800 dark:text-white">{item.vendor}</td>
+                                    <td className="py-2 px-3 text-slate-700 dark:text-slate-300">{item.vendorName}</td>
+                                    <td className="py-2 px-3 text-slate-500 dark:text-slate-400 font-mono text-[10px]">{item.glAccount}</td>
+                                    <td className="py-2 px-3 font-bold font-mono text-emerald-600 dark:text-emerald-400">${item.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                                    <td className="py-2 px-3 text-slate-500 dark:text-slate-400 font-mono text-[10px]">{item.postingDate}</td>
                                   </tr>
-                                </thead>
-                                <tbody>
-                                  {apItems.map((item, idx) => (
-                                    <tr key={idx} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                                      <td className="py-2 px-3 font-mono">{item.id}</td>
-                                      <td className="py-2 px-3 font-mono font-bold text-white">{item.vendor}</td>
-                                      <td className="py-2 px-3 text-slate-300">{item.vendorName}</td>
-                                      <td className="py-2 px-3 text-slate-400 font-mono">{item.glAccount}</td>
-                                      <td className="py-2 px-3 font-bold font-mono text-emerald-400">${item.amount.toLocaleString()}</td>
-                                      <td className="py-2 px-3 text-slate-400 font-mono">{item.postingDate}</td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                            </div>
-                          )
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
                         )}
+                        <div className="mt-2 text-[10px] text-slate-400 dark:text-slate-500 italic text-right font-sans">
+                          💡 Showing first {activeDbTab === "ar" ? arItems.length : apItems.length} items. Scroll vertically to inspect all rows in the PostgreSQL cache.
+                        </div>
                       </div>
                       
-                      {arItems.length > 0 && (
-                        <div className="text-[10px] text-slate-500 font-mono flex items-center justify-between border-t border-white/5 pt-2.5 mt-4">
-                          <span>Source: {sapSource}</span>
-                          <span className="text-emerald-400 font-semibold flex items-center">
-                            <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Cache Status: 100% physically Ingested in Postgres
-                          </span>
-                        </div>
-                      )}
+                      <div className="text-[10px] text-slate-505 font-mono flex items-center justify-between border-t border-slate-200 dark:border-white/5 pt-2.5 mt-4">
+                        <span>Source: {sapSource}</span>
+                        <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center">
+                          <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Cache Status: 100% physically Ingested in Postgres ({arItems.length + apItems.length} unique records)
+                        </span>
+                      </div>
                     </div>
                   )}
 
@@ -921,128 +1031,12 @@ export default function AriaFinanceDashboard() {
           </div>
         )}
 
-        {/* PHASE 2: ANALYZE AND FORECAST */}
-        {currentPhase === 2 && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-            {/* Left side: Projected Cash Runway SVG */}
-            <div className="lg:col-span-8 flex flex-col">
-              <CashFlowForecastChart
-                arTerms={arTerms}
-                apExtension={apExtension}
-                minBuffer={minBuffer}
-                apVolume={apVolume}
-                arVolume={totalReceivables}
-              />
-            </div>
-
-            {/* Right side: Insights details */}
-            <div className="lg:col-span-4 flex flex-col justify-between space-y-6">
-              <div className="glass-panel p-6 rounded-2xl flex flex-col space-y-4 shadow-lg border-l-2 border-l-rose-500 flex-1">
-                <h3 className="text-sm font-bold text-slate-200 flex items-center">
-                  <ShieldAlert className="w-4.5 h-4.5 mr-2 text-rose-500" />
-                  Detected Liquidity Risk Insights
-                </h3>
-                
-                <div className="space-y-4 text-xs">
-                  <div className="p-3 bg-rose-500/5 border border-rose-500/10 rounded-xl leading-relaxed text-rose-200">
-                    <strong>Projected Cash Deficit:</strong> On Day 18 (Payroll run), operational cash balance drops to <strong>${lowestUnoptValue.toLocaleString()}</strong>, which breaches the safety buffer limit of <strong>${minBuffer.toLocaleString()}</strong> by <strong>-${(minBuffer - lowestUnoptValue).toLocaleString()}</strong>.
-                  </div>
-
-                  <div className="space-y-2 text-slate-300">
-                    <div className="font-semibold text-slate-400 uppercase tracking-wider text-[9px]">Root Cause Mapping:</div>
-                    <div className="flex justify-between p-2 rounded bg-white/5 border border-white/5">
-                      <span>Total Payables Outstanding:</span>
-                      <span className="font-mono text-white font-bold">${apVolume.toLocaleString()} (Day 12)</span>
-                    </div>
-                    <div className="flex justify-between p-2 rounded bg-white/5 border border-white/5">
-                      <span>Customer Settlement Lag:</span>
-                      <span className="font-mono text-purple-400 font-bold">48 Days (Day 48 receipt)</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="pt-4 mt-auto">
-                  <button
-                    onClick={() => setCurrentPhase(3)}
-                    className="w-full py-3 rounded-xl bg-evolver-viridian hover:bg-evolver-viridian-light text-white text-xs font-bold transition-all shadow-lg flex items-center justify-center space-x-1 group"
-                  >
-                    <span>Evaluate Recommended Actions</span>
-                    <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* PHASE 3: RECOMMEND ACTIONS */}
-        {currentPhase === 3 && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-            {/* Left side: Interactive sliders & Forecast */}
-            <div className="lg:col-span-8 flex flex-col space-y-6">
-              {/* Sliders */}
-              <div className="glass-panel p-6 rounded-2xl flex flex-col space-y-4 shadow-lg">
-                <h3 className="text-sm font-bold text-slate-300 flex items-center border-b border-white/5 pb-2.5">
-                  <Activity className="w-4 h-4 mr-2 text-evolver-viridian" />
-                  Scenario Engine (Configure Recommendation Parameters)
-                </h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {/* Slider 1 */}
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-xs">
-                      <span className="text-slate-400 font-semibold">Min Cash Buffer</span>
-                      <span className="font-mono text-white font-bold">${(minBuffer / 1000000).toFixed(2)}M</span>
-                    </div>
-                    <input
-                      type="range"
-                      min={1000000}
-                      max={2500000}
-                      step={50000}
-                      value={minBuffer}
-                      onChange={(e) => setMinBuffer(Number(e.target.value))}
-                      className="w-full accent-evolver-viridian bg-slate-800 rounded-lg appearance-none h-1.5 cursor-pointer"
-                    />
-                  </div>
-
-                  {/* Slider 2 */}
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-xs">
-                      <span className="text-slate-400 font-semibold">AR Early Discount Rate</span>
-                      <span className="font-mono text-white font-bold">{discountRate.toFixed(1)}%</span>
-                    </div>
-                    <input
-                      type="range"
-                      min={0.0}
-                      max={3.0}
-                      step={0.5}
-                      value={discountRate}
-                      onChange={(e) => setDiscountRate(Number(e.target.value))}
-                      className="w-full accent-cyan-500 bg-slate-800 rounded-lg appearance-none h-1.5 cursor-pointer"
-                    />
-                  </div>
-
-                  {/* Slider 3 */}
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-xs">
-                      <span className="text-slate-400 font-semibold">AP Extension Days</span>
-                      <span className="font-mono text-white font-bold">+{apExtension} Days</span>
-                    </div>
-                    <input
-                      type="range"
-                      min={0}
-                      max={20}
-                      step={1}
-                      value={apExtension}
-                      onChange={(e) => setApExtension(Number(e.target.value))}
-                      className="w-full accent-amber-500 bg-slate-800 rounded-lg appearance-none h-1.5 cursor-pointer"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Dynamic SVG projection */}
-              <div className="flex-1 min-h-[260px]">
+        {/* TAB 3: VISUALIZE FINDINGS */}
+        {activeTab === "visualize" && (
+          <div className="flex-grow flex flex-col justify-between py-2 space-y-6 animate-in fade-in duration-300">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch flex-grow">
+              {/* Left side: Projected Cash Runway SVG */}
+              <div id="vis-forecast" className="lg:col-span-8 flex flex-col scroll-mt-6">
                 <CashFlowForecastChart
                   arTerms={arTerms}
                   apExtension={apExtension}
@@ -1051,52 +1045,244 @@ export default function AriaFinanceDashboard() {
                   arVolume={totalReceivables}
                 />
               </div>
-            </div>
 
-            {/* Right side: Policy Checks & AI Judgment */}
-            <div className="lg:col-span-4 flex flex-col space-y-6">
-              <RuleEngineStatus
-                arTerms={arTerms}
-                apExtension={apExtension}
-                minBuffer={minBuffer}
-                lowestOptValue={lowestOptValue}
-                lowestUnoptValue={lowestUnoptValue}
-                discountRate={discountRate}
-              />
+              {/* Right side: Insights details */}
+              <div className="lg:col-span-4 flex flex-col justify-between space-y-6">
+                <div id="vis-insights" className="glass-panel p-6 rounded-2xl flex flex-col space-y-4 shadow-lg border-l-2 border-l-rose-500 flex-1 scroll-mt-6">
+                  <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center font-sans">
+                    <ShieldAlert className="w-4.5 h-4.5 mr-2 text-rose-500" />
+                    Detected Liquidity Risk Insights
+                  </h3>
+                  
+                  <div className="space-y-4 text-xs flex-1 font-sans">
+                    <div className="p-3 bg-rose-50 dark:bg-rose-500/5 border border-rose-200 dark:border-rose-500/10 rounded-xl leading-relaxed text-rose-950 dark:text-rose-200 text-[11px]">
+                      <strong>Projected Cash Deficit:</strong> On Day 18 (Payroll run), operational cash balance drops to <strong>${lowestUnoptValue.toLocaleString()}</strong>, which breaches the safety buffer limit of <strong>${minBuffer.toLocaleString()}</strong> by <strong>-${(minBuffer - lowestUnoptValue).toLocaleString()}</strong>.
+                    </div>
 
-              <div className="glass-panel p-6 rounded-2xl flex flex-col space-y-3 relative overflow-hidden shadow-lg border-l-2 border-l-purple-500 flex-1">
-                <h3 className="text-sm font-bold text-slate-300">Domain Judgment & ML Rationale</h3>
-                <div className="text-[11px] leading-relaxed text-purple-200 bg-purple-500/5 border border-purple-500/10 p-4 rounded-xl flex-1 overflow-y-auto">
-                  {domainJudgmentText}
-                </div>
-                
-                <div className="pt-2">
-                  <button
-                    disabled={!isCurrentlySafe}
-                    onClick={() => setCurrentPhase(4)}
-                    className={clsx(
-                      "w-full py-3 rounded-xl text-xs font-bold transition-all shadow-lg flex items-center justify-center space-x-1 group",
-                      isCurrentlySafe
-                        ? "bg-evolver-viridian hover:bg-evolver-viridian-light text-white"
-                        : "bg-slate-900/40 text-slate-600 border border-white/5 cursor-not-allowed"
-                    )}
-                  >
-                    <span>Configure Write-Back Gateway</span>
-                    <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-                  </button>
+                    <div id="vis-causes" className="space-y-2 text-slate-700 dark:text-slate-300 scroll-mt-6">
+                      <div className="font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-[9px] font-sans">Root Cause Mapping:</div>
+                      <div className="flex justify-between p-2 rounded bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5 text-[10.5px]">
+                        <span>Total Payables Outstanding:</span>
+                        <span className="font-mono text-slate-850 dark:text-white font-bold">${apVolume.toLocaleString()} (Day 12)</span>
+                      </div>
+                      <div className="flex justify-between p-2 rounded bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5 text-[10.5px]">
+                        <span>Customer Settlement Lag:</span>
+                        <span className="font-mono text-purple-650 dark:text-purple-400 font-bold">48 Days (Day 48 receipt)</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 mt-auto">
+                    <button
+                      onClick={() => handleTabChange("reason")}
+                      className="w-full py-3 rounded-xl bg-evolver-viridian hover:bg-evolver-viridian-light text-white text-xs font-bold transition-all shadow-lg flex items-center justify-center space-x-1 group cursor-pointer"
+                    >
+                      <span>Evaluate Recommended Actions</span>
+                      <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         )}
 
-        {/* PHASE 4: AUTHORIZE AND EXECUTE BAPIs */}
-        {currentPhase === 4 && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-            {/* Left side: Evidence Graph & BAPI Terminal */}
-            <div className="lg:col-span-7 flex flex-col space-y-6">
-              {/* Evidence Graph */}
-              <div className="h-[280px]">
+        {/* TAB 4: REASON POLICIES */}
+        {activeTab === "reason" && (
+          <div className="flex-grow flex flex-col justify-between py-2 space-y-6 animate-in fade-in duration-300">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch flex-grow">
+              {/* Left side: Interactive sliders & Forecast */}
+              <div className="lg:col-span-8 flex flex-col space-y-6">
+                {/* Sliders */}
+                <div id="reas-sliders" className="glass-panel p-6 rounded-2xl flex flex-col space-y-4 shadow-lg scroll-mt-6">
+                  <h3 className="text-sm font-bold text-slate-800 dark:text-slate-300 flex items-center border-b border-slate-200 dark:border-white/5 pb-2.5 font-sans">
+                    <Activity className="w-4 h-4 mr-2 text-evolver-viridian" />
+                    Scenario Engine (Configure Recommendation Parameters)
+                  </h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 font-sans">
+                    {/* Slider 1 */}
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-xs">
+                        <span className="text-slate-500 dark:text-slate-400 font-semibold">Min Cash Buffer</span>
+                        <span className="font-mono text-slate-800 dark:text-white font-bold">${(minBuffer / 1000000).toFixed(2)}M</span>
+                      </div>
+                      <input
+                        type="range"
+                        min={1000000}
+                        max={2500000}
+                        step={50000}
+                        value={minBuffer}
+                        onChange={(e) => setMinBuffer(Number(e.target.value))}
+                        className="w-full accent-evolver-viridian bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none h-1.5 cursor-pointer"
+                      />
+                    </div>
+
+                    {/* Slider 2 */}
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-xs">
+                        <span className="text-slate-500 dark:text-slate-400 font-semibold">AR Early Discount Rate</span>
+                        <span className="font-mono text-slate-800 dark:text-white font-bold">{discountRate.toFixed(1)}%</span>
+                      </div>
+                      <input
+                        type="range"
+                        min={0.0}
+                        max={3.0}
+                        step={0.5}
+                        value={discountRate}
+                        onChange={(e) => setDiscountRate(Number(e.target.value))}
+                        className="w-full accent-cyan-500 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none h-1.5 cursor-pointer"
+                      />
+                    </div>
+
+                    {/* Slider 3 */}
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-xs">
+                        <span className="text-slate-500 dark:text-slate-400 font-semibold">AP Extension Days</span>
+                        <span className="font-mono text-slate-800 dark:text-white font-bold">+{apExtension} Days</span>
+                      </div>
+                      <input
+                        type="range"
+                        min={0}
+                        max={20}
+                        step={1}
+                        value={apExtension}
+                        onChange={(e) => setApExtension(Number(e.target.value))}
+                        className="w-full accent-amber-500 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none h-1.5 cursor-pointer"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Dynamic SVG projection */}
+                <div className="flex-grow min-h-[260px]">
+                  <CashFlowForecastChart
+                    arTerms={arTerms}
+                    apExtension={apExtension}
+                    minBuffer={minBuffer}
+                    apVolume={apVolume}
+                    arVolume={totalReceivables}
+                  />
+                </div>
+              </div>
+
+              {/* Right side: Policy Checks & AI Judgment */}
+              <div className="lg:col-span-4 flex flex-col space-y-6">
+                <div id="reas-rules" className="scroll-mt-6">
+                  <RuleEngineStatus
+                    arTerms={arTerms}
+                    apExtension={apExtension}
+                    minBuffer={minBuffer}
+                    lowestOptValue={lowestOptValue}
+                    lowestUnoptValue={lowestUnoptValue}
+                    discountRate={discountRate}
+                  />
+                </div>
+
+                <div id="reas-rationale" className="glass-panel p-6 rounded-2xl flex flex-col space-y-3 relative overflow-hidden shadow-lg border-l-2 border-l-purple-500 flex-grow justify-between font-sans scroll-mt-6">
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-800 dark:text-slate-300">Domain Judgment & ML Rationale</h3>
+                    <div className="text-[11px] leading-relaxed text-purple-950 dark:text-purple-200 bg-purple-50 dark:bg-purple-500/5 border border-purple-200 dark:border-purple-500/10 p-4 rounded-xl max-h-[180px] overflow-y-auto mt-2 leading-relaxed font-sans">
+                      {domainJudgmentText}
+                    </div>
+                  </div>
+                  
+                  <div className="pt-2">
+                    <button
+                      disabled={!isCurrentlySafe}
+                      onClick={() => handleTabChange("execute")}
+                      className={clsx(
+                        "w-full py-3 rounded-xl text-xs font-bold transition-all shadow-lg flex items-center justify-center space-x-1 group cursor-pointer font-sans",
+                        isCurrentlySafe
+                          ? "bg-evolver-viridian hover:bg-evolver-viridian-light text-white"
+                          : "bg-slate-200 dark:bg-slate-900/40 text-slate-400 dark:text-slate-650 border border-slate-200 dark:border-white/5 cursor-not-allowed"
+                      )}
+                    >
+                      <span>Configure Write-Back Gateway</span>
+                      <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform font-sans" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 5: EXECUTE BAPI */}
+        {activeTab === "execute" && (
+          <div className="flex-grow flex flex-col justify-between py-2 space-y-6 animate-in fade-in duration-300">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch flex-grow">
+              {/* Left side: BAPI Terminal */}
+              <div id="exec-terminal" className="lg:col-span-7 flex flex-col min-h-[360px] scroll-mt-6">
+                <BapiTerminal
+                  arTerms={arTerms}
+                  apExtension={apExtension}
+                  executionState={executionState}
+                  onExecute={handleExecuteBapis}
+                />
+              </div>
+
+              {/* Right side: CFO Sign-off */}
+              <div className="lg:col-span-5 flex flex-col space-y-6 justify-between">
+                {/* Reviewer Gate */}
+                <div id="exec-gate" className="glass-panel p-6 rounded-2xl flex flex-col space-y-4 shadow-lg border-t-2 border-t-evolver-viridian relative font-sans scroll-mt-6">
+                  <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">Reviewer Gate & Cryptographic Approval</h3>
+                  <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed font-sans">
+                    Cryptographic verification generates verifiable TYPOGRAPHIC audit packets logged against your S/4HANA system. Signatures validate modifications to customer profiles and invoice dates.
+                  </p>
+
+                  {approvalState === "signing" ? (
+                    <div className="flex flex-col items-center justify-center p-5 rounded-xl bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5 space-y-2">
+                      <span className="w-1.5 h-1.5 bg-evolver-viridian rounded-full animate-ping"></span>
+                      <span className="text-xs font-mono text-evolver-viridian animate-pulse">
+                        Generating digital credentials...
+                      </span>
+                    </div>
+                  ) : approvalState === "signed" ? (
+                    <div className="p-4 rounded-xl bg-emerald-100 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 space-y-2">
+                      <div className="flex items-center space-x-2 text-emerald-800 dark:text-emerald-400 font-sans">
+                        <ShieldCheck className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                        <span className="text-xs font-bold font-sans">Verification Active: Signature Stamped</span>
+                      </div>
+                      <div className="space-y-1 text-[9.5px] font-mono text-slate-600 dark:text-slate-400">
+                        <div>Signer: Treasurer/CFO (Verified Credentials)</div>
+                        <div className="truncate">Tx: {txHash}</div>
+                        <div>Stamp: {signatureDate}</div>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={handleAuthorizeSignature}
+                      className="w-full py-3 rounded-xl text-xs font-bold transition-all shadow-md active:scale-97 flex items-center justify-center bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-white border border-slate-350 dark:border-white/10 hover:border-slate-400 dark:hover:border-white/20 cursor-pointer font-sans"
+                    >
+                      <Lock className="w-4 h-4 mr-2 text-slate-500" />
+                      <span>Stamp Authorized Signature</span>
+                    </button>
+                  )}
+                </div>
+
+                {executionState === "success" && (
+                  <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400 rounded-xl text-xs font-semibold flex items-center justify-between shadow-md font-sans">
+                    <span>🎉 BAPI executed successfully. ERP tables BSID/BSIK updated.</span>
+                    <button
+                      onClick={() => handleTabChange("evidence")}
+                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold text-[10px] uppercase font-mono tracking-wider transition-all cursor-pointer shadow-md select-none animate-pulse"
+                    >
+                      Collect Evidence Voucher ➜
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 6: AUDIT EVIDENCE */}
+        {activeTab === "evidence" && (
+          <div className="flex-grow flex flex-col justify-between py-2 space-y-6 animate-in fade-in duration-300">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch flex-grow">
+              {/* Left side: Evidence Graph */}
+              <div id="ev-graph" className="lg:col-span-7 flex flex-col min-h-[360px] scroll-mt-6">
                 <EvidenceGraph
                   arTerms={arTerms}
                   apExtension={apExtension}
@@ -1109,75 +1295,23 @@ export default function AriaFinanceDashboard() {
                 />
               </div>
 
-              {/* BAPI Terminal */}
-              <div className="flex-1 min-h-[300px]">
-                <BapiTerminal
+              {/* Right side: Generated Memo */}
+              <div id="ev-memo" className="lg:col-span-5 flex flex-col justify-between scroll-mt-6">
+                <AuditMemo
                   arTerms={arTerms}
                   apExtension={apExtension}
-                  executionState={executionState}
-                  onExecute={handleExecuteBapis}
+                  minBuffer={minBuffer}
+                  discountRate={discountRate}
+                  lowestUnoptValue={lowestUnoptValue}
+                  signatureDate={signatureDate}
+                  txHash={txHash}
                 />
               </div>
-            </div>
-
-            {/* Right side: CFO Sign-off and generated memo */}
-            <div className="lg:col-span-5 flex flex-col space-y-6">
-              {/* Reviewer Gate */}
-              <div className="glass-panel p-6 rounded-2xl flex flex-col space-y-4 shadow-lg border-t-2 border-t-evolver-viridian relative">
-                <h3 className="text-sm font-bold text-slate-200">Reviewer Gate & Cryptographic Approval</h3>
-                <p className="text-[11px] text-slate-400 leading-relaxed">
-                  Cryptographic verification generates verifiable TYPOGRAPHIC audit packets logged against your S/4HANA system. Signatures validate modifications to customer profiles and invoice dates.
-                </p>
-
-                {approvalState === "signing" ? (
-                  <div className="flex flex-col items-center justify-center p-5 rounded-xl bg-white/5 border border-white/5 space-y-2">
-                    <span className="w-1.5 h-1.5 bg-evolver-viridian rounded-full animate-ping"></span>
-                    <span className="text-xs font-mono text-evolver-viridian-light animate-pulse">
-                      Generating digital credentials...
-                    </span>
-                  </div>
-                ) : approvalState === "signed" ? (
-                  <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 space-y-2">
-                    <div className="flex items-center space-x-2 text-emerald-400">
-                      <ShieldCheck className="w-5 h-5" />
-                      <span className="text-xs font-bold font-sans">Verification Active: Signature Stamped</span>
-                    </div>
-                    <div className="space-y-1 text-[9.5px] font-mono text-slate-400">
-                      <div>Signer: Treasurer/CFO (Verified Credentials)</div>
-                      <div className="truncate">Tx: {txHash}</div>
-                      <div>Stamp: {signatureDate}</div>
-                    </div>
-                  </div>
-                ) : (
-                  <button
-                    onClick={handleAuthorizeSignature}
-                    className="w-full py-3 rounded-xl text-xs font-bold transition-all shadow-md active:scale-97 flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-white border border-white/10 hover:border-white/20"
-                  >
-                    <Lock className="w-4 h-4 mr-2 text-slate-500" />
-                    <span>Stamp Authorized Signature</span>
-                  </button>
-                )}
-              </div>
-
-              {/* Generated Audit Memo */}
-              {executionState === "success" && (
-                <div className="flex-1">
-                  <AuditMemo
-                    arTerms={arTerms}
-                    apExtension={apExtension}
-                    minBuffer={minBuffer}
-                    discountRate={discountRate}
-                    lowestUnoptValue={lowestUnoptValue}
-                    signatureDate={signatureDate}
-                    txHash={txHash}
-                  />
-                </div>
-              )}
             </div>
           </div>
         )}
 
-      </div>
     </div>
+  </div>
   );
 }

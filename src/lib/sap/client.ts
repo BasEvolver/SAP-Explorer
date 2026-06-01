@@ -101,4 +101,139 @@ export class SAPClient {
             throw new Error(`Network request failed: ${error.message}${cause}`);
         }
     }
+
+    async odataPost(apiPath: string, payload: any): Promise<any> {
+        const servicePath = apiPath.split('/')[0];
+        const tokenUrl = `${this.baseUrl}/${servicePath}/`;
+        
+        console.log(`[SAPClient] Initiating CSRF Token Handshake: ${tokenUrl}`);
+        const { token, cookies } = await this.fetchCsrfTokenAndCookies(tokenUrl);
+        
+        const url = `${this.baseUrl}/${apiPath}`;
+        console.log(`[SAPClient] Executing OData POST to: ${url}`);
+        
+        return new Promise<any>((resolve, reject) => {
+            const urlObj = new URL(url);
+            const options: https.RequestOptions = {
+                hostname: urlObj.hostname,
+                port: urlObj.port,
+                path: urlObj.pathname + urlObj.search,
+                method: 'POST',
+                headers: {
+                    'Authorization': this.authHeader,
+                    'x-csrf-token': token,
+                    'Cookie': cookies.join('; '),
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                rejectUnauthorized: false
+            };
+
+            const req = https.request(options, (res) => {
+                let data = '';
+                res.on('data', (chunk) => {
+                    data += chunk;
+                });
+                res.on('end', () => {
+                    if (res.statusCode && (res.statusCode < 200 || res.statusCode >= 300)) {
+                        reject(new Error(`SAP POST Error ${res.statusCode}: ${res.statusMessage} - ${data}`));
+                    } else {
+                        try {
+                            resolve(JSON.parse(data));
+                        } catch (e) {
+                            resolve({ status: "success", rawResponse: data });
+                        }
+                    }
+                });
+            });
+
+            req.on('error', (e) => reject(e));
+            req.write(JSON.stringify(payload));
+            req.end();
+        });
+    }
+
+    async odataPatch(apiPath: string, payload: any): Promise<any> {
+        const servicePath = apiPath.split('/')[0];
+        const tokenUrl = `${this.baseUrl}/${servicePath}/`;
+        
+        console.log(`[SAPClient] Initiating CSRF Token Handshake for PATCH: ${tokenUrl}`);
+        const { token, cookies } = await this.fetchCsrfTokenAndCookies(tokenUrl);
+        
+        const url = `${this.baseUrl}/${apiPath}`;
+        console.log(`[SAPClient] Executing OData PATCH to: ${url}`);
+        
+        return new Promise<any>((resolve, reject) => {
+            const urlObj = new URL(url);
+            const options: https.RequestOptions = {
+                hostname: urlObj.hostname,
+                port: urlObj.port,
+                path: urlObj.pathname + urlObj.search,
+                method: 'PATCH',
+                headers: {
+                    'Authorization': this.authHeader,
+                    'x-csrf-token': token,
+                    'Cookie': cookies.join('; '),
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                rejectUnauthorized: false
+            };
+
+            const req = https.request(options, (res) => {
+                let data = '';
+                res.on('data', (chunk) => {
+                    data += chunk;
+                });
+                res.on('end', () => {
+                    if (res.statusCode && (res.statusCode < 200 || res.statusCode >= 300)) {
+                        reject(new Error(`SAP PATCH Error ${res.statusCode}: ${res.statusMessage} - ${data}`));
+                    } else {
+                        try {
+                            resolve(JSON.parse(data));
+                        } catch (e) {
+                            resolve({ status: "success", rawResponse: data });
+                        }
+                    }
+                });
+            });
+
+            req.on('error', (e) => reject(e));
+            req.write(JSON.stringify(payload));
+            req.end();
+        });
+    }
+
+
+    private async fetchCsrfTokenAndCookies(urlStr: string): Promise<{ token: string, cookies: string[] }> {
+        return new Promise((resolve, reject) => {
+            const url = new URL(urlStr);
+            const options: https.RequestOptions = {
+                hostname: url.hostname,
+                port: url.port,
+                path: url.pathname + "?$format=json",
+                method: 'GET',
+                headers: {
+                    'Authorization': this.authHeader,
+                    'x-csrf-token': 'fetch'
+                },
+                rejectUnauthorized: false
+            };
+
+            const req = https.request(options, (res) => {
+                const token = res.headers['x-csrf-token'] as string;
+                const cookies = res.headers['set-cookie'] || [];
+                
+                if (!token) {
+                    console.warn("[SAPClient] CSRF token fetch failed, proceeding with dummy token.");
+                    resolve({ token: "dummy-token", cookies: [] });
+                } else {
+                    resolve({ token, cookies });
+                }
+            });
+
+            req.on('error', (e) => reject(e));
+            req.end();
+        });
+    }
 }

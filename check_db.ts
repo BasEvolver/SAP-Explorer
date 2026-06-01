@@ -9,9 +9,23 @@ const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
 async function run() {
-  const count = await prisma.sapDD08L.count();
-  console.log('DD08L Replica count:', count);
-  const log = await prisma.syncLog.findFirst({ orderBy: { startedAt: 'desc' }});
-  console.log('Last Sync Log:', log);
+  const arItems = await prisma.sapArItem.findMany({ select: { postingDate: true } });
+  const apItems = await prisma.sapApItem.findMany({ select: { postingDate: true } });
+
+  const arYears: Record<string, number> = {};
+  const apYears: Record<string, number> = {};
+
+  arItems.forEach(item => {
+    const year = item.postingDate ? item.postingDate.substring(0, 4) : 'unknown';
+    arYears[year] = (arYears[year] || 0) + 1;
+  });
+
+  apItems.forEach(item => {
+    const year = item.postingDate ? item.postingDate.substring(0, 4) : 'unknown';
+    apYears[year] = (apYears[year] || 0) + 1;
+  });
+
+  console.log('AR Items by Year:', arYears);
+  console.log('AP Items by Year:', apYears);
 }
 run().catch(console.error).finally(() => prisma.$disconnect());

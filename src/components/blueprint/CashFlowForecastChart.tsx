@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { useTheme } from "next-themes";
 import { TrendingUp, Info } from "lucide-react";
 
 interface CashFlowForecastChartProps {
@@ -18,6 +19,9 @@ export default function CashFlowForecastChart({
   apVolume,
   arVolume,
 }: CashFlowForecastChartProps) {
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme !== "light";
+
   // Generate 30 days of data
   const chartData = useMemo(() => {
     const data: { day: number; unopt: number; opt: number }[] = [];
@@ -113,18 +117,18 @@ export default function CashFlowForecastChart({
   return (
     <div className="glass-panel p-6 rounded-2xl flex flex-col space-y-4 relative overflow-hidden shadow-lg h-full">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-bold text-slate-300 flex items-center">
+        <h3 className="text-sm font-bold text-slate-800 dark:text-slate-300 flex items-center">
           <TrendingUp className="w-4 h-4 mr-2 text-evolver-viridian" />
           30-Day Liquidity & Cash Runway Simulation
         </h3>
         <div className="flex items-center space-x-4 text-[10px]">
           <div className="flex items-center space-x-1">
-            <span className="w-2 h-0.5 bg-slate-500 inline-block border-t border-dashed"></span>
-            <span className="text-slate-500">Before</span>
+            <span className="w-2 h-0.5 bg-slate-400 dark:bg-slate-500 inline-block border-t border-dashed"></span>
+            <span className="text-slate-500 dark:text-slate-450">Before</span>
           </div>
           <div className="flex items-center space-x-1">
             <span className="w-2.5 h-1 bg-emerald-500 inline-block rounded-full"></span>
-            <span className="text-emerald-400 font-semibold">After</span>
+            <span className="text-emerald-600 dark:text-emerald-400 font-semibold">After</span>
           </div>
         </div>
       </div>
@@ -137,19 +141,19 @@ export default function CashFlowForecastChart({
         >
           {/* Y Axis Gridlines */}
           {[1000000, 1500000, 2000000, 2500000].map((val) => (
-            <g key={val} className="opacity-10 dark:opacity-20">
+            <g key={val} className="opacity-20 dark:opacity-20">
               <line
                 x1={padding.left}
                 y1={getY(val)}
                 x2={width - padding.right}
                 y2={getY(val)}
-                stroke="#fff"
+                stroke={isDark ? "#fff" : "#475569"}
                 strokeWidth="1"
               />
               <text
                 x={padding.left - 10}
                 y={getY(val) + 4}
-                fill="#fff"
+                fill={isDark ? "#fff" : "#475569"}
                 fontSize="10"
                 fontFamily="monospace"
                 textAnchor="end"
@@ -165,7 +169,7 @@ export default function CashFlowForecastChart({
               key={day}
               x={getX(day)}
               y={height - 15}
-              fill="#94a3b8"
+              fill={isDark ? "#94a3b8" : "#475569"}
               fontSize="9"
               fontFamily="monospace"
               textAnchor="middle"
@@ -185,7 +189,7 @@ export default function CashFlowForecastChart({
               stroke="#ef4444"
               strokeWidth="1.5"
               strokeDasharray="4,4"
-              className="opacity-40 dark:opacity-60"
+              className="opacity-50 dark:opacity-60"
             />
             <rect
               x={width - 150}
@@ -194,12 +198,12 @@ export default function CashFlowForecastChart({
               height="14"
               rx="4"
               fill="#ef4444"
-              className="opacity-10 dark:opacity-20"
+              className="opacity-15 dark:opacity-20"
             />
             <text
               x={width - 85}
               y={getY(minBuffer) - 8}
-              fill="#fca5a5"
+              fill={isDark ? "#fca5a5" : "#b91c1c"}
               fontSize="8"
               fontWeight="bold"
               textAnchor="middle"
@@ -215,7 +219,7 @@ export default function CashFlowForecastChart({
             stroke="#ef4444"
             strokeWidth="1.5"
             strokeDasharray="4,3"
-            className="opacity-30 dark:opacity-40"
+            className="opacity-40 dark:opacity-40"
           />
 
           {/* Optimized Path Line */}
@@ -229,13 +233,23 @@ export default function CashFlowForecastChart({
 
           {/* Value Dot Highlights */}
           {lowestUnoptValue < minBuffer && (
-            <circle
-              cx={getX(18)}
-              cy={getY(chartData[17].unopt)}
-              r="4"
-              fill="#ef4444"
-              className="animate-ping"
-            />
+            <g>
+              {/* Pulsing Sonar Ring */}
+              <circle
+                cx={getX(18)}
+                cy={getY(chartData[17].unopt)}
+                r="6"
+                fill="#ef4444"
+                className="animate-ping opacity-75"
+              />
+              {/* Solid Center Core */}
+              <circle
+                cx={getX(18)}
+                cy={getY(chartData[17].unopt)}
+                r="4.5"
+                fill="#ef4444"
+              />
+            </g>
           )}
 
           {isOptimizedSafe && (
@@ -250,17 +264,17 @@ export default function CashFlowForecastChart({
       </div>
 
       {/* Info panel */}
-      <div className="flex items-start space-x-2 text-[10.5px] p-2.5 rounded-lg bg-white/5 border border-white/5">
-        <Info className="w-3.5 h-3.5 text-slate-400 mt-0.5 flex-shrink-0" />
-        <div className="text-slate-400">
+      <div className="flex items-start space-x-2 text-[10.5px] p-2.5 rounded-lg bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5">
+        <Info className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400 mt-0.5 flex-shrink-0" />
+        <div className="text-slate-700 dark:text-slate-400">
           {isOptimizedSafe ? (
-            <span className="text-slate-300">
-              <strong className="text-emerald-400">Optimization Successful:</strong> Proactive interventions pull early customer capital and delay outbound payments. Cash balance remains strictly above the red line threshold.
+            <span className="text-slate-600 dark:text-slate-300">
+              <strong className="text-emerald-700 dark:text-emerald-400">Optimization Successful:</strong> Proactive interventions pull early customer capital and delay outbound payments. Cash balance remains strictly above the red line threshold.
             </span>
           ) : (
-            <span className="text-slate-300">
-              <strong className="text-rose-400">Buffer Violated:</strong> Under the current parameters, your forecasted liquidity is projected to dip to{" "}
-              <strong className="font-mono text-rose-300">${(lowestUnoptValue / 1000000).toFixed(2)}M</strong> on Day 18 (Payroll), breaching your defined cash safety buffer. Adjust the sliders to resolve the deficit.
+            <span className="text-slate-600 dark:text-slate-300">
+              <strong className="text-rose-600 dark:text-rose-400">Buffer Violated:</strong> Under the current parameters, your forecasted liquidity is projected to dip to{" "}
+              <strong className="font-mono text-rose-700 dark:text-rose-300">${(lowestUnoptValue / 1000000).toFixed(2)}M</strong> on Day 18 (Payroll), breaching your defined cash safety buffer. Adjust the sliders to resolve the deficit.
             </span>
           )}
         </div>

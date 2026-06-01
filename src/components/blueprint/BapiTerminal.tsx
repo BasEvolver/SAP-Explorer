@@ -65,23 +65,23 @@ export default function BapiTerminal({
 
   return (
     <div className="glass-panel p-6 rounded-2xl flex flex-col space-y-4 shadow-lg h-full">
-      <div className="flex items-center justify-between border-b border-white/5 pb-3">
+      <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/5 pb-3">
         <div className="flex items-center space-x-2">
-          <Terminal className="w-5 h-5 text-emerald-400" />
-          <h3 className="text-sm font-bold text-slate-300">
+          <Terminal className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+          <h3 className="text-sm font-bold text-slate-800 dark:text-slate-300">
             Closed-Loop BAPI Execution Console
           </h3>
         </div>
         <div className="flex items-center space-x-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-slate-500"></span>
-          <span className="text-[10px] text-slate-500 font-mono">STDOUT</span>
+          <span className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-500"></span>
+          <span className="text-[10px] text-slate-505 dark:text-slate-500 font-mono">STDOUT</span>
         </div>
       </div>
 
       {/* Console Display */}
-      <div className="flex-1 bg-black/60 rounded-xl border border-white/5 p-4 font-mono text-[10.5px] leading-relaxed text-slate-300 overflow-y-auto min-h-[260px] max-h-[360px] shadow-inner select-text">
+      <div className="flex-1 bg-slate-100/90 dark:bg-black/60 rounded-xl border border-slate-200 dark:border-white/5 p-4 font-mono text-[10.5px] leading-relaxed text-slate-800 dark:text-slate-300 overflow-y-auto min-h-[260px] max-h-[360px] shadow-inner select-text">
         {logs.length === 0 && executionState === "idle" && (
-          <div className="w-full h-full flex flex-col items-center justify-center text-slate-500 space-y-2 py-12">
+          <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 space-y-2 py-12">
             <Terminal className="w-8 h-8 opacity-30" />
             <p>System ready. Awaiting multi-signature authorization sign-off...</p>
           </div>
@@ -92,12 +92,12 @@ export default function BapiTerminal({
             key={idx}
             className={clsx(
               "whitespace-pre-wrap transition-opacity duration-300",
-              log.startsWith("⏳") || log.startsWith("📡") || log.startsWith("⚙️") || log.startsWith("📝") ? "text-slate-400" : "",
-              log.startsWith("🔑") || log.startsWith("🔒") ? "text-purple-400" : "",
-              log.startsWith("🚀") ? "text-cyan-400 font-bold" : "",
-              log.startsWith("✅") ? "text-emerald-400 font-semibold" : "",
-              log.startsWith("🎉") ? "text-emerald-400 font-bold bg-emerald-500/10 px-2 py-1 rounded mt-2 inline-block" : "",
-              log.startsWith("   ↳") ? "text-slate-500" : ""
+              log.startsWith("⏳") || log.startsWith("📡") || log.startsWith("⚙️") || log.startsWith("📝") ? "text-slate-500 dark:text-slate-400" : "",
+              log.startsWith("🔑") || log.startsWith("🔒") ? "text-purple-600 dark:text-purple-400" : "",
+              log.startsWith("🚀") ? "text-cyan-600 dark:text-cyan-400 font-bold" : "",
+              log.startsWith("✅") ? "text-emerald-600 dark:text-emerald-400 font-semibold" : "",
+              log.startsWith("🎉") ? "text-emerald-700 dark:text-emerald-400 font-bold bg-emerald-500/10 dark:bg-emerald-500/15 px-2 py-1 rounded mt-2 inline-block border border-emerald-500/20" : "",
+              log.startsWith("   ↳") ? "text-slate-500 dark:text-slate-450" : ""
             )}
           >
             {log}
@@ -114,13 +114,13 @@ export default function BapiTerminal({
         {executionState === "executing" ? (
           <button
             disabled
-            className="flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-slate-800 text-slate-400 text-xs font-semibold cursor-not-allowed border border-white/5"
+            className="flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 text-xs font-semibold cursor-not-allowed border border-slate-200 dark:border-white/5"
           >
-            <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
+            <Loader2 className="w-4 h-4 animate-spin text-slate-400 dark:text-slate-500" />
             <span>Executing...</span>
           </button>
         ) : executionState === "success" ? (
-          <div className="flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-semibold">
+          <div className="flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 text-xs font-semibold">
             <CheckCircle className="w-4 h-4" />
             <span>Executed Successfully</span>
           </div>
