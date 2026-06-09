@@ -85,6 +85,7 @@ const navItems: NavItem[] = [
       { icon: Table, label: "Transparent Tables", href: "/data/tables" },
       { icon: ServerCog, label: "Logical Databases", href: "/data/logical-dbs" },
       { icon: DatabaseZap, label: "CDS Views", href: "/data/cds-views" },
+      { icon: Database, label: "Prisma Database UI", href: "/data/database" },
     ]
   },
   { 

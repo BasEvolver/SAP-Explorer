@@ -1,4 +1,5 @@
 import { Database, Table, Layers, FileDigit, DatabaseZap } from "lucide-react";
+import Link from "next/link";
 
 export default function DataDashboard() {
   return (
@@ -14,9 +15,9 @@ export default function DataDashboard() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 mb-12">
           {/* Data Dictionary Card */}
-          <div className="glass-panel p-6 rounded-2xl hover:bg-white/5 transition-all cursor-pointer group border border-white/5 hover:border-evolver-viridian/50">
+          <Link href="/data/dictionary" className="glass-panel p-6 rounded-2xl hover:bg-white/5 transition-all cursor-pointer group border border-white/5 hover:border-evolver-viridian/50 block">
             <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
               <FileDigit className="w-6 h-6 text-emerald-400" />
             </div>
@@ -24,10 +25,10 @@ export default function DataDashboard() {
             <p className="text-slate-400 text-sm">
               Explore domains, data elements, structures, and table types that define the SAP foundation.
             </p>
-          </div>
+          </Link>
 
           {/* Tables Card */}
-          <div className="glass-panel p-6 rounded-2xl hover:bg-white/5 transition-all cursor-pointer group border border-white/5 hover:border-blue-500/50">
+          <Link href="/data/tables" className="glass-panel p-6 rounded-2xl hover:bg-white/5 transition-all cursor-pointer group border border-white/5 hover:border-blue-500/50 block">
             <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
               <Table className="w-6 h-6 text-blue-400" />
             </div>
@@ -35,10 +36,10 @@ export default function DataDashboard() {
             <p className="text-slate-400 text-sm">
               Direct access to database tables (e.g. MARA, EKKO) and their fields, foreign keys, and indexes.
             </p>
-          </div>
+          </Link>
 
           {/* Logical DBs Card */}
-          <div className="glass-panel p-6 rounded-2xl hover:bg-white/5 transition-all cursor-pointer group border border-white/5 hover:border-amber-500/50">
+          <Link href="/data/logical-dbs" className="glass-panel p-6 rounded-2xl hover:bg-white/5 transition-all cursor-pointer group border border-white/5 hover:border-amber-500/50 block">
             <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
               <Layers className="w-6 h-6 text-amber-400" />
             </div>
@@ -46,10 +47,10 @@ export default function DataDashboard() {
             <p className="text-slate-400 text-sm">
               View hierarchical data retrieval structures used by classical ABAP reports and queries.
             </p>
-          </div>
+          </Link>
 
           {/* CDS Views Card */}
-          <div className="glass-panel p-6 rounded-2xl hover:bg-white/5 transition-all cursor-pointer group border border-white/5 hover:border-indigo-500/50">
+          <Link href="/data/cds-views" className="glass-panel p-6 rounded-2xl hover:bg-white/5 transition-all cursor-pointer group border border-white/5 hover:border-indigo-500/50 block">
             <div className="w-12 h-12 rounded-xl bg-indigo-500/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
               <DatabaseZap className="w-6 h-6 text-indigo-400" />
             </div>
@@ -57,7 +58,18 @@ export default function DataDashboard() {
             <p className="text-slate-400 text-sm">
               Explore semantic models, standard CDS views, annotations, and underlying database relations.
             </p>
-          </div>
+          </Link>
+
+          {/* Prisma Database UI Card */}
+          <Link href="/data/database" className="glass-panel p-6 rounded-2xl hover:bg-white/5 transition-all cursor-pointer group border border-white/5 hover:border-emerald-500/50 block">
+            <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+              <Database className="w-6 h-6 text-emerald-400" />
+            </div>
+            <h2 className="text-xl font-bold text-white mb-2">Prisma Database UI</h2>
+            <p className="text-slate-400 text-sm">
+              Live explorer and browser to read, filter, inspect schema, and manage cached tables.
+            </p>
+          </Link>
         </div>
 
         {/* Future Expansion / Details Area */}
