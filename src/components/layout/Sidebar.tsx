@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
-import { Compass, Database, Link as LinkIcon, Settings, HardDrive, ChevronDown, ChevronRight, FileText, Table, ServerCog, Blocks, Code2, Network, DatabaseZap, PanelLeftClose, PanelLeftOpen, Search, TrendingUp, Sparkles, ShieldAlert, Coins, Landmark, Scale, ShieldCheck, BadgeAlert, ShoppingCart, Briefcase, Activity, Lock, Sun, Moon } from "lucide-react";
+import { Compass, Database, Link as LinkIcon, Settings, HardDrive, ChevronDown, ChevronRight, FileText, Table, ServerCog, Blocks, Code2, Network, DatabaseZap, PanelLeftClose, PanelLeftOpen, Search, TrendingUp, Sparkles, ShieldAlert, Coins, Landmark, Scale, ShieldCheck, BadgeAlert, ShoppingCart, Briefcase, Activity, Lock, Sun, Moon, LayoutGrid } from "lucide-react";
 import clsx from "clsx";
 import ConnectionStatus from "@/components/layout/ConnectionStatus";
 import { useState, useEffect } from "react";
@@ -176,14 +176,14 @@ export default function Sidebar() {
     )}>
       {/* Brand / Logo */}
       <div className={clsx("flex items-center mb-12", isCollapsed ? "justify-center px-0" : "justify-center lg:justify-between px-0 lg:px-6 w-full")}>
-        <div className="flex items-center">
+        <Link href="/" className="flex items-center group/logo hover:opacity-85 transition-opacity" title="Back to Portal Hub">
             <div className={clsx("w-10 h-10 relative", isCollapsed ? "" : "hidden lg:block")}>
                 <Image 
                     src="/graphics/Evolver_Mark_Viridian.png" 
                     alt="Evolver Logo" 
                     width={40} 
                     height={40}
-                    className="object-contain"
+                    className="object-contain group-hover/logo:scale-105 transition-transform duration-300"
                 />
             </div>
             <div className={clsx("w-10 h-10 relative lg:hidden", isCollapsed ? "hidden" : "block")}>
@@ -192,11 +192,11 @@ export default function Sidebar() {
                     alt="Evolver Logo" 
                     width={40} 
                     height={40}
-                    className="object-contain"
+                    className="object-contain group-hover/logo:scale-105 transition-transform duration-300"
                 />
             </div>
-            {!isCollapsed && <span className="hidden lg:block ml-3 font-semibold text-xl tracking-tight text-slate-900 dark:text-white">Evolver</span>}
-        </div>
+            {!isCollapsed && <span className="hidden lg:block ml-3 font-semibold text-xl tracking-tight text-slate-900 dark:text-white group-hover/logo:text-evolver-viridian-light transition-colors">Evolver</span>}
+        </Link>
         {!isCollapsed && (
             <button onClick={() => setIsCollapsed(true)} className="hidden lg:block text-slate-500 hover:text-slate-950 dark:hover:text-white transition-colors">
                 <PanelLeftClose className="w-5 h-5" />
@@ -475,6 +475,14 @@ export default function Sidebar() {
             </button>
           </div>
         )}
+
+        <Link href="/" className={clsx(
+            "w-full flex items-center p-3 rounded-xl text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white transition-all duration-300 group",
+            isCollapsed ? "justify-center" : "justify-center lg:justify-start"
+        )}>
+            <LayoutGrid className="w-6 h-6 group-hover:scale-110 transition-transform duration-300 text-evolver-viridian" />
+            {!isCollapsed && <span className="hidden lg:block ml-3 text-sm font-medium">Portal Hub</span>}
+        </Link>
 
         <button className={clsx(
             "w-full flex items-center p-3 rounded-xl text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white transition-all duration-300 group",

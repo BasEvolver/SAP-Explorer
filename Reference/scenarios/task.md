@@ -1,0 +1,6 @@
+- [x] Create Master Demo Design Blueprint
+  - [x] Write `master_demo_design.md` covering Aether Precision Systems profile, SAP-ARIA integration mappings, and UI layout rules
+- [x] Create Scenario Design Documents
+  - [x] Write `scenario_1_tprm_compliance.md` (SwissOptics TPRM Risk & Invoice Hold)
+  - [x] Write `scenario_2_supply_chain_hedging.md` (Hormuz Supply Chain Disruption & FX Hedging)
+  - [x] Write `scenario_3_working_capital_sweep.md` (Global Treasury Cash Sweep & Tax compliance)
