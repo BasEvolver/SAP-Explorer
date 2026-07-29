@@ -14,6 +14,9 @@ import {
 } from "@/lib/manifold/cognitive3DData";
 import { 
   Maximize2, 
+  ZoomIn,
+  ZoomOut,
+  RotateCcw,
   Search, 
   X, 
   Zap, 
@@ -116,6 +119,29 @@ export default function Cognitive3DGraphCanvas({
     const nodeIds = new Set(nodes.map((n) => n.id));
     links = links.filter((l) => nodeIds.has(typeof l.source === "object" ? (l.source as any).id : l.source) && nodeIds.has(typeof l.target === "object" ? (l.target as any).id : l.target));
 
+    // Fallback Link Safety Check: Ensure zero un-connected/isolated nodes in any perspective view
+    const connectedNodeIds = new Set<string>();
+    links.forEach((l) => {
+      const srcId = typeof l.source === "object" ? (l.source as any).id : l.source;
+      const tgtId = typeof l.target === "object" ? (l.target as any).id : l.target;
+      connectedNodeIds.add(srcId);
+      connectedNodeIds.add(tgtId);
+    });
+
+    const fallbackSystem = nodes.find((n) => n.id === "System: SAP S/4HANA") || nodes.find((n) => n.type === "System") || nodes[0];
+    if (fallbackSystem) {
+      nodes.forEach((n) => {
+        if (!connectedNodeIds.has(n.id) && n.id !== fallbackSystem.id) {
+          links.push({
+            source: fallbackSystem.id,
+            target: n.id,
+            type: "SystemAutoLink",
+            color: "rgba(99, 102, 241, 0.25)"
+          });
+        }
+      });
+    }
+
     return { nodes, links };
   }, [rawGraphData, viewMode, countryFilter, scenarioFilter]);
 
@@ -155,7 +181,7 @@ export default function Cognitive3DGraphCanvas({
     };
   }, []);
 
-  // 3D Camera Flight Jump
+  // 3D Camera Controls
   const flyToNode = (node: Node3D, distance = 140) => {
     if (graphRef.current) {
       const distRatio = 1 + distance / Math.hypot(node.x || 1, node.y || 1, node.z || 1);
@@ -166,6 +192,45 @@ export default function Cognitive3DGraphCanvas({
       );
     }
   };
+
+  const handleZoomIn = () => {
+    if (graphRef.current) {
+      const pos = graphRef.current.cameraPosition();
+      graphRef.current.cameraPosition(
+        { x: pos.x * 0.7, y: pos.y * 0.7, z: pos.z * 0.7 },
+        undefined,
+        400
+      );
+    }
+  };
+
+  const handleZoomOut = () => {
+    if (graphRef.current) {
+      const pos = graphRef.current.cameraPosition();
+      graphRef.current.cameraPosition(
+        { x: pos.x * 1.45, y: pos.y * 1.45, z: pos.z * 1.45 },
+        undefined,
+        400
+      );
+    }
+  };
+
+  const handleBirdseyeView = () => {
+    if (graphRef.current) {
+      setSelectedNode(null);
+      graphRef.current.zoomToFit(1200, 160);
+    }
+  };
+
+  // Automatically start from a Birdseye View whenever switching viewPerspective or countryFilter
+  useEffect(() => {
+    if (!graphRef.current || !isLoaded) return;
+    const timer = setTimeout(() => {
+      setSelectedNode(null);
+      graphRef.current?.zoomToFit(1200, 160);
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [viewMode, countryFilter, isLoaded]);
 
   // Fly to Country node when countryFilter changes
   useEffect(() => {
@@ -278,7 +343,7 @@ export default function Cognitive3DGraphCanvas({
           ))}
         </div>
 
-        {/* Country Drill-Down Selector */}
+        {/* Country & Camera Controls */}
         <div className="flex items-center gap-2">
           {viewMode !== "applications" && (
             <div className="flex items-center gap-1 text-[10px] font-mono">
@@ -323,26 +388,75 @@ export default function Cognitive3DGraphCanvas({
             />
           </div>
 
-          <button
-            onClick={() => {
-              setViewMode("all");
-              setCountryFilter("ALL");
-              if (graphRef.current) graphRef.current.zoomToFit(1200, 100);
-            }}
-            className={clsx(
-              "p-1.5 border rounded-xl cursor-pointer transition-colors",
-              isDark ? "bg-slate-900 hover:bg-slate-800 border-white/10 text-slate-300 hover:text-white" : "bg-white hover:bg-slate-100 border-slate-200 text-slate-600"
-            )}
-            title="Reset View"
-          >
-            <Maximize2 className="w-3.5 h-3.5" />
-          </button>
+          {/* Dedicated Zoom In, Zoom Out, and Birdseye View Controls */}
+          <div className="flex items-center gap-1 border-l border-slate-200 dark:border-white/10 pl-2">
+            <button
+              onClick={handleZoomIn}
+              className={clsx(
+                "p-1.5 border rounded-xl cursor-pointer transition-colors",
+                isDark ? "bg-slate-900 hover:bg-slate-800 border-white/10 text-slate-300 hover:text-white" : "bg-white hover:bg-slate-100 border-slate-200 text-slate-600"
+              )}
+              title="Zoom In (+)"
+            >
+              <ZoomIn className="w-3.5 h-3.5" />
+            </button>
+
+            <button
+              onClick={handleZoomOut}
+              className={clsx(
+                "p-1.5 border rounded-xl cursor-pointer transition-colors",
+                isDark ? "bg-slate-900 hover:bg-slate-800 border-white/10 text-slate-300 hover:text-white" : "bg-white hover:bg-slate-100 border-slate-200 text-slate-600"
+              )}
+              title="Zoom Out (-)"
+            >
+              <ZoomOut className="w-3.5 h-3.5" />
+            </button>
+
+            <button
+              onClick={handleBirdseyeView}
+              className={clsx(
+                "px-2.5 py-1 border rounded-xl cursor-pointer transition-colors flex items-center gap-1 text-[10px] font-mono font-bold",
+                isDark ? "bg-slate-900 hover:bg-slate-800 border-white/10 text-indigo-400 hover:text-indigo-300" : "bg-white hover:bg-slate-100 border-slate-200 text-indigo-600"
+              )}
+              title="Birdseye View (Reset Camera)"
+            >
+              <Compass className="w-3.5 h-3.5 text-indigo-500" />
+              <span>Birdseye View</span>
+            </button>
+          </div>
         </div>
 
       </div>
 
       {/* Main 3D Canvas Viewport */}
       <div className="relative flex-1 w-full h-full overflow-hidden">
+        {/* Floating Quick Camera Controls Overlay */}
+        <div className="absolute top-4 left-4 z-20 flex items-center gap-1.5 p-1.5 rounded-2xl border backdrop-blur-md shadow-lg transition-colors bg-white/80 dark:bg-slate-950/80 border-slate-200 dark:border-white/10">
+          <button
+            onClick={handleZoomIn}
+            className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-white/10 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
+            title="Zoom In (+)"
+          >
+            <ZoomIn className="w-4 h-4" />
+          </button>
+          <button
+            onClick={handleZoomOut}
+            className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-white/10 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
+            title="Zoom Out (-)"
+          >
+            <ZoomOut className="w-4 h-4" />
+          </button>
+          <div className="w-px h-4 bg-slate-200 dark:bg-white/10 my-auto" />
+          <button
+            onClick={handleBirdseyeView}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/10 transition-colors cursor-pointer"
+            title="Reset to Birdseye View"
+          >
+            <Compass className="w-4 h-4 text-indigo-500" />
+            <span>Birdseye View</span>
+          </button>
+        </div>
+
         {dimensions.width > 0 && (
           <ForceGraph3D
             ref={graphRef}

@@ -942,14 +942,20 @@ export function generateEnterprise3DGraph(): Graph3DData {
   nodes.push(swissOpticsVendor, swissOpticsCustomer, invoice10002841, zeissVendor);
 
   links.push(
-    { source: "System: Dun & Bradstreet", target: "Vendor: VEND_CH_9002 (SwissOptics)", type: "ThreatLink", color: "#ef4444", scenario: "swissoptics-tprm", status: "hazard", scopes: ["tprm"] },
-    { source: "Vendor: VEND_CH_9002 (SwissOptics)", target: "CoCode 1010", type: "ProcurementLink", color: "#ef4444", scenario: "swissoptics-tprm", status: "blocked", scopes: ["tprm"] },
+    { source: "System: Dun & Bradstreet", target: "Vendor: VEND_CH_9002 (SwissOptics)", type: "ThreatLink", color: "#ef4444", scenario: "swissoptics-tprm", status: "hazard", scopes: ["tprm", "applications"] },
+    { source: "System: SAP S/4HANA", target: "Vendor: VEND_CH_9002 (SwissOptics)", type: "MasterVendorRecord", color: "#06b6d4", scopes: ["tprm", "finance", "applications"] },
+    { source: "System: SAP Ariba Network", target: "Vendor: VEND_CH_9002 (SwissOptics)", type: "AribaLink", color: "#fbbf24", scopes: ["tprm", "applications"] },
+    { source: "Vendor: VEND_CH_9002 (SwissOptics)", target: "CoCode 1010", type: "ProcurementLink", color: "#ef4444", scenario: "swissoptics-tprm", status: "blocked", scopes: ["tprm", "finance"] },
     { source: "Vendor: VEND_CH_9002 (SwissOptics)", target: "Voucher: BSEG-10002841", type: "InvoiceLink", color: "#ef4444", scenario: "swissoptics-tprm", status: "blocked", scopes: ["tprm", "finance"] },
     { source: "CoCode 1010", target: "Customer: CUST_CH_9002 (SwissOptics)", type: "SalesLink", color: "#f59e0b", scenario: "swissoptics-tprm", status: "netted", scopes: ["sales", "finance"] },
-    { source: "Vendor: VEND_CH_8801 (Zeiss)", target: "CoCode 1010", type: "RerouteLink", color: "#10b981", scenario: "swissoptics-tprm", status: "rerouted", scopes: ["tprm"] }
+    { source: "System: Salesforce CRM", target: "Customer: CUST_CH_9002 (SwissOptics)", type: "CRMLink", color: "#ec4899", scopes: ["sales", "applications"] },
+    { source: "System: SAP S/4HANA", target: "Customer: CUST_CH_9002 (SwissOptics)", type: "KNA1Link", color: "#06b6d4", scopes: ["sales", "finance", "applications"] },
+    { source: "Vendor: VEND_CH_8801 (Zeiss)", target: "CoCode 1010", type: "RerouteLink", color: "#10b981", scenario: "swissoptics-tprm", status: "rerouted", scopes: ["tprm"] },
+    { source: "System: SAP S/4HANA", target: "Vendor: VEND_CH_8801 (Zeiss)", type: "MasterVendorRecord", color: "#06b6d4", scopes: ["tprm", "finance", "applications"] },
+    { source: "System: SAP Ariba Network", target: "Vendor: VEND_CH_8801 (Zeiss)", type: "AribaLink", color: "#fbbf24", scopes: ["tprm", "applications"] }
   );
 
-  // 6. GENERATE EMPLOYEES & PERSONNEL (Workday / SAP HR)
+  // 6. GENERATE EMPLOYEES & PERSONNEL (Workday / SAP HR / Azure AD)
   for (let i = 1; i <= 300; i++) {
     const title = EMPLOYEE_TITLES[i % EMPLOYEE_TITLES.length];
     const country = i < 100 ? "DE" : i < 200 ? "US" : "SG";
@@ -965,22 +971,38 @@ export function generateEnterprise3DGraph(): Graph3DData {
       color: "#14b8a6",
       val: 8,
       country: country,
-      scopes: ["applications"],
+      scopes: ["applications", "finance"],
       sapTable: "PA0002",
       details: `Active employee in Company Code ${coCode} holding authorization roles for ERP workflow sign-off.`
     });
 
-    if (i % 2 === 0) {
-      links.push({
+    // System Connections: Workday HCM, Azure AD Identity & Company Code
+    links.push(
+      {
+        source: "System: Workday HCM",
+        target: `Employee: ${empId}`,
+        type: "HCMRecord",
+        color: "rgba(20, 184, 166, 0.25)",
+        scopes: ["applications", "finance"]
+      },
+      {
+        source: "System: Microsoft Azure AD",
+        target: `Employee: ${empId}`,
+        type: "IdentityLink",
+        color: "rgba(168, 85, 247, 0.2)",
+        scopes: ["applications"]
+      },
+      {
         source: `Employee: ${empId}`,
         target: coCode,
         type: "EmploymentLink",
-        color: "rgba(20, 184, 166, 0.2)"
-      });
-    }
+        color: "rgba(20, 184, 166, 0.2)",
+        scopes: ["applications", "finance"]
+      }
+    );
   }
 
-  // 7. GENERATE CUSTOMER ACCOUNTS (Salesforce CRM & KNA1)
+  // 7. GENERATE CUSTOMER ACCOUNTS (Salesforce CRM & SAP S/4HANA KNA1)
   for (let i = 1; i <= 400; i++) {
     const custName = i < CUSTOMER_NAMES.length ? CUSTOMER_NAMES[i] : `Customer Acct CUST_GLOBAL_${1000 + i}`;
     const code = `CUST_ACC_${1000 + i}`;
@@ -1000,16 +1022,33 @@ export function generateEnterprise3DGraph(): Graph3DData {
       details: `Strategic commercial satellite or defense contractor.`
     });
 
-    links.push({
-      source: "System: Salesforce CRM",
-      target: `Customer: ${code}`,
-      type: "CRMContract",
-      color: "rgba(236, 72, 153, 0.15)",
-      scopes: ["sales"]
-    });
+    // System Connections: Salesforce CRM & SAP S/4HANA (KNA1 Master Data)
+    links.push(
+      {
+        source: "System: Salesforce CRM",
+        target: `Customer: ${code}`,
+        type: "CRMContract",
+        color: "rgba(236, 72, 153, 0.2)",
+        scopes: ["sales", "applications"]
+      },
+      {
+        source: "System: SAP S/4HANA",
+        target: `Customer: ${code}`,
+        type: "KNA1MasterRecord",
+        color: "rgba(6, 182, 212, 0.2)",
+        scopes: ["sales", "finance", "applications"]
+      }
+    );
   }
 
-  // 8. GENERATE 1,500 REGIONAL TPRM VENDORS
+  // 8. GENERATE 1,500 REGIONAL TPRM VENDORS (Connected to SAP S/4HANA, TPRM Systems & CoCodes)
+  const tprmSystems = [
+    "System: SAP Ariba Network",
+    "System: Dun & Bradstreet",
+    "System: Coupa Spend",
+    "System: ServiceNow ITSM"
+  ];
+
   for (let i = 1; i <= 1500; i++) {
     const prefix = VENDOR_PREFIXES[i % VENDOR_PREFIXES.length];
     const suffix = VENDOR_SUFFIXES[i % VENDOR_SUFFIXES.length];
@@ -1017,6 +1056,7 @@ export function generateEnterprise3DGraph(): Graph3DData {
     const country = REGIONS_MAP[region];
     const code = `VEND_${region}_${2000 + i}`;
     const parentCoCode = country === "DE" ? "CoCode 1010" : country === "US" ? "CoCode 1710" : "CoCode 0001";
+    const tprmSystem = tprmSystems[i % tprmSystems.length];
 
     nodes.push({
       id: `Vendor: ${code}`,
@@ -1032,15 +1072,32 @@ export function generateEnterprise3DGraph(): Graph3DData {
       details: `Registered Tier-${(i % 3) + 1} vendor under Purchasing Org PURCH_${region}_10.`
     });
 
-    if (i % 3 !== 0) {
-      links.push({
-        source: `Vendor: ${code}`,
-        target: parentCoCode,
-        type: "VendorLink",
-        color: "rgba(255, 255, 255, 0.06)",
-        scopes: ["tprm"]
-      });
-    }
+    // 1. Link to SAP S/4HANA (Vendor Master LFA1)
+    links.push({
+      source: "System: SAP S/4HANA",
+      target: `Vendor: ${code}`,
+      type: "MasterVendorRecord",
+      color: "rgba(6, 182, 212, 0.25)",
+      scopes: ["tprm", "finance", "applications"]
+    });
+
+    // 2. Link to TPRM / SCM Risk Systems (Ariba, D&B, Coupa, ServiceNow)
+    links.push({
+      source: tprmSystem,
+      target: `Vendor: ${code}`,
+      type: "TPRMSystemLink",
+      color: "rgba(245, 158, 11, 0.25)",
+      scopes: ["tprm", "applications"]
+    });
+
+    // 3. Link to Company Code
+    links.push({
+      source: `Vendor: ${code}`,
+      target: parentCoCode,
+      type: "VendorLink",
+      color: "rgba(99, 102, 241, 0.15)",
+      scopes: ["tprm", "finance"]
+    });
   }
 
   return { nodes, links };

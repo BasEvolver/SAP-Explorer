@@ -42,6 +42,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Cognitive3DGraphCanvas from "@/components/manifold/Cognitive3DGraphCanvas";
+import SwissOpticsScenarioView from "@/components/scenarios/SwissOpticsScenarioView";
 
 // Scenarios definition matching Reference documents & Vendor 360 Deep-Dive
 const SCENARIOS = {
@@ -399,211 +400,220 @@ export default function SimulationSandboxPage() {
           ))}
         </div>
 
-        {/* Dynamic Header & Stepper */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-slate-900/30 border border-slate-200/80 dark:border-white/5 p-6 rounded-2xl shadow-sm">
-          <div className="space-y-1">
-            <span className="text-[9px] font-mono font-extrabold text-indigo-505 dark:text-indigo-400 uppercase tracking-widest block">
-              Resolution Workspace Selector &bull; {scenario.category}
-            </span>
-            <h2 className="text-2xl font-[300] tracking-tight text-slate-900 dark:text-white">
-              {scenario.title}
-            </h2>
-            <p className="text-xs text-slate-455 dark:text-slate-400 max-w-2xl font-medium leading-relaxed">
-              Active Enterprise Node: <span className="font-mono text-[11px] font-bold text-[#008fbb] dark:text-cyan-400">{scenario.node}</span>
-            </p>
+        {/* Dynamic Header & Stepper (Rendered for standard views, omitted for SwissOptics Phase 1 to prevent double header) */}
+        {!(activeScenarioId === "swissoptics-tprm" && activeStep === 1) && (
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-slate-900/30 border border-slate-200/80 dark:border-white/5 p-6 rounded-2xl shadow-sm">
+            <div className="space-y-1">
+              <span className="text-[9px] font-mono font-extrabold text-indigo-505 dark:text-indigo-400 uppercase tracking-widest block">
+                Resolution Workspace Selector &bull; {scenario.category}
+              </span>
+              <h2 className="text-2xl font-[300] tracking-tight text-slate-900 dark:text-white">
+                {scenario.title}
+              </h2>
+              <p className="text-xs text-slate-455 dark:text-slate-400 max-w-2xl font-medium leading-relaxed">
+                Active Enterprise Node: <span className="font-mono text-[11px] font-bold text-[#008fbb] dark:text-cyan-400">{scenario.node}</span>
+              </p>
+            </div>
+
+            {/* Timeline wizard steps navigator */}
+            <div className="flex items-center gap-1.5 self-center">
+              {[
+                { num: 1, label: "Signal" },
+                { num: 2, label: "Reasoning" },
+                { num: 3, label: "Calibrate" },
+                { num: 4, label: "Commit" }
+              ].map((step, idx) => (
+                <React.Fragment key={step.num}>
+                  <button
+                    onClick={() => {
+                      setActiveStep(step.num);
+                      if (step.num < 4) {
+                        setTerminalLines([]);
+                        setIsExecuting(false);
+                        setShowSuccessCertificate(false);
+                      }
+                    }}
+                    className={clsx(
+                      "px-3.5 py-1.5 rounded-lg text-[10px] font-extrabold tracking-wider uppercase border cursor-pointer transition-all",
+                      activeStep === step.num
+                        ? "bg-slate-900 text-white border-slate-900 dark:bg-white dark:text-slate-950 dark:border-white shadow-sm"
+                        : activeStep > step.num
+                        ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+                        : "bg-white border-slate-200 text-slate-450 hover:bg-slate-50 dark:bg-slate-900/30 dark:border-white/5 dark:text-slate-400"
+                    )}
+                  >
+                    {step.num}. {step.label}
+                  </button>
+                  {idx < 3 && <ChevronRight className="w-3 h-3 text-slate-300 dark:text-slate-700" />}
+                </React.Fragment>
+              ))}
+            </div>
           </div>
+        )}
 
-          {/* Timeline wizard steps navigator */}
-          <div className="flex items-center gap-1.5 self-center">
-            {[
-              { num: 1, label: "Signal" },
-              { num: 2, label: "Reasoning" },
-              { num: 3, label: "Calibrate" },
-              { num: 4, label: "Commit" }
-            ].map((step, idx) => (
-              <React.Fragment key={step.num}>
-                <button
-                  onClick={() => {
-                    setActiveStep(step.num);
-                    if (step.num < 4) {
-                      setTerminalLines([]);
-                      setIsExecuting(false);
-                      setShowSuccessCertificate(false);
-                    }
-                  }}
-                  className={clsx(
-                    "px-3.5 py-1.5 rounded-lg text-[10px] font-extrabold tracking-wider uppercase border cursor-pointer transition-all",
-                    activeStep === step.num
-                      ? "bg-slate-900 text-white border-slate-900 dark:bg-white dark:text-slate-950 dark:border-white shadow-sm"
-                      : activeStep > step.num
-                      ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
-                      : "bg-white border-slate-200 text-slate-450 hover:bg-slate-50 dark:bg-slate-900/30 dark:border-white/5 dark:text-slate-400"
-                  )}
-                >
-                  {step.num}. {step.label}
-                </button>
-                {idx < 3 && <ChevronRight className="w-3 h-3 text-slate-300 dark:text-slate-700" />}
-              </React.Fragment>
-            ))}
-          </div>
-        </div>
-
-        {/* Step Views Wrapper - 3 Grid Layout Utilizing Real Estate */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
-          
-          {/* Main Content Area: Left & Middle Columns (2/3 width) */}
-          <div className="lg:col-span-2 bg-white dark:bg-[#090d16]/60 border border-slate-200 dark:border-white/5 rounded-3xl p-6 shadow-sm flex flex-col justify-between relative min-h-[480px]">
-            
-            {/* Animate Step Transitions */}
-            <AnimatePresence mode="wait">
-              {activeStep === 1 && (
-                <motion.div
-                  key="step-1"
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 10 }}
-                  className="space-y-6"
-                >
-                  <div className="flex justify-between items-center text-[9px] font-extrabold uppercase tracking-widest text-slate-500 border-b border-slate-100 dark:border-white/5 pb-2">
-                    <span className="flex items-center gap-1.5">
-                      <AlertTriangle className="w-4 h-4 text-red-500" />
-                      Step 1: Signal & Third-Party Risk (TPRM 360 View)
-                    </span>
-                    <span>Automated Ingestion</span>
-                  </div>
-
-                  {/* Top Alert & Crawl Feeds */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="p-4 bg-red-500/5 dark:bg-red-500/10 rounded-2xl border border-red-500/15 space-y-1.5">
-                      <span className="text-[10px] text-red-600 dark:text-red-400 font-extrabold uppercase tracking-wider block font-mono flex items-center gap-1">
-                        <ShieldAlert className="w-3.5 h-3.5" />
-                        Trigger Event Ingestion
+        {/* Workspace Content View */}
+        {activeScenarioId === "swissoptics-tprm" && activeStep === 1 ? (
+          <SwissOpticsScenarioView 
+            onProceedToReasoning={() => setActiveStep(2)} 
+            activeStep={activeStep}
+            onSelectStep={(s) => {
+              setActiveStep(s);
+              if (s < 4) {
+                setTerminalLines([]);
+                setIsExecuting(false);
+                setShowSuccessCertificate(false);
+              }
+            }}
+          />
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
+            {/* Main Content Area: Left & Middle Columns (2/3 width) */}
+            <div className="lg:col-span-2 bg-white dark:bg-[#090d16]/60 border border-slate-200 dark:border-white/5 rounded-3xl p-6 shadow-sm flex flex-col justify-between relative min-h-[480px]">
+              
+              {/* Animate Step Transitions */}
+              <AnimatePresence mode="wait">
+                {activeStep === 1 && (
+                  <motion.div
+                    key="step-1"
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 10 }}
+                    className="space-y-6"
+                  >
+                    <div className="flex justify-between items-center text-[9px] font-extrabold uppercase tracking-widest text-slate-500 border-b border-slate-100 dark:border-white/5 pb-2">
+                      <span className="flex items-center gap-1.5">
+                        <AlertTriangle className="w-4 h-4 text-red-500" />
+                        Step 1: Signal & Third-Party Risk (TPRM 360 View)
                       </span>
-                      <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
-                        {scenario.situation}
-                      </p>
+                      <span>Automated Ingestion</span>
                     </div>
 
-                    <div className="p-3.5 bg-slate-900 text-slate-200 rounded-2xl font-mono text-[10px] space-y-1.5 border border-white/5 shadow-inner flex flex-col justify-between">
-                      <span className="text-[9px] text-slate-400 font-extrabold uppercase block tracking-widest">
-                        Raw Crawled Ingestion Logs
-                      </span>
-                      {activeScenarioId === "swissoptics-tprm" ? (
-                        <div className="space-y-1">
-                          <div className="text-amber-400">&bull; [Threat-Crawler] swissoptics.ch domain security breach confirmed. Risk Index Drop.</div>
-                          <div className="text-slate-300">&bull; [AP Audit] Unverified banking details detected on pending Accounts Payable clearing list.</div>
-                          <div className="text-red-400">&bull; [BEC Detector] High sensitivity warning on invoice voucher 10002841 ($450,000).</div>
-                        </div>
-                      ) : activeScenarioId === "strait-of-hormuz" ? (
-                        <div className="space-y-1">
-                          <div className="text-red-400">&bull; [SC Logistics] Shipping Lane Strait of Hormuz blocked. Red Flag registered.</div>
-                          <div className="text-slate-300">&bull; [Inventory Audit] Depletion alert at storage Plant DE-10. Material MAT_COB_4019 count critical.</div>
-                          <div className="text-amber-400">&bull; [Procurement Alert] Alternate vendor sources found: VEND_US_8009 (AlloyTech US).</div>
-                        </div>
-                      ) : (
-                        <div className="space-y-1">
-                          <div className="text-purple-400">&bull; [Treasury Scan] Active intercompany borrowing rates discrepancy found. Net leakage: $235,000/yr.</div>
-                          <div className="text-slate-300">&bull; [G/L Ledger Check] Singapore cash surplus: $8.0M @ 3.5%; US debt liability: -$5.0M @ 8.2%.</div>
-                          <div className="text-emerald-400">&bull; [Boundary Test] Intercompany clearance rules check triggered (ACDOCA/BSEG validation).</div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Vendor 360 Deep-Dive Commercial Intelligence */}
-                  <div className="space-y-3">
-                    <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-widest block font-mono flex items-center gap-1.5">
-                      <Building2 className="w-3.5 h-3.5 text-indigo-500" />
-                      Commercial Entity 360 Profile & Relationships
-                    </span>
-
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                      <div className="p-3.5 bg-slate-50 dark:bg-slate-950/40 rounded-2xl border border-slate-200/80 dark:border-white/5 space-y-1">
-                        <span className="text-[9px] text-slate-400 uppercase font-bold block">Entity Name & Location</span>
-                        <div className="text-xs font-extrabold text-slate-900 dark:text-white truncate">{scenario.vendor360.entityName}</div>
-                        <span className="text-[9.5px] font-mono text-indigo-500 font-semibold">{scenario.vendor360.relationshipTier}</span>
-                      </div>
-
-                      <div className="p-3.5 bg-slate-50 dark:bg-slate-950/40 rounded-2xl border border-slate-200/80 dark:border-white/5 space-y-1">
-                        <span className="text-[9px] text-slate-400 uppercase font-bold block">Annual AP Buy Spend</span>
-                        <div className="text-xs font-extrabold text-slate-900 dark:text-white font-mono">{scenario.vendor360.annualBuySpend}</div>
-                        <span className="text-[9.5px] font-sans text-slate-500 truncate block">{scenario.vendor360.buyItems}</span>
-                      </div>
-
-                      <div className="p-3.5 bg-slate-50 dark:bg-slate-950/40 rounded-2xl border border-slate-200/80 dark:border-white/5 space-y-1">
-                        <span className="text-[9px] text-slate-400 uppercase font-bold block flex items-center justify-between">
-                          <span>Reverse Trade / Sell</span>
-                          <span className="text-emerald-500 text-[8px] font-bold">Dual-Role</span>
+                    {/* Top Alert & Crawl Feeds */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="p-4 bg-red-500/5 dark:bg-red-500/10 rounded-2xl border border-red-500/15 space-y-1.5">
+                        <span className="text-[10px] text-red-600 dark:text-red-400 font-extrabold uppercase tracking-wider block font-mono flex items-center gap-1">
+                          <ShieldAlert className="w-3.5 h-3.5" />
+                          Trigger Event Ingestion
                         </span>
-                        <div className="text-xs font-extrabold text-emerald-600 dark:text-emerald-400 font-mono">{scenario.vendor360.annualSellVolume}</div>
-                        <span className="text-[9.5px] font-sans text-slate-500 truncate block">{scenario.vendor360.sellItems}</span>
+                        <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
+                          {scenario.situation}
+                        </p>
                       </div>
 
-                      <div className="p-3.5 bg-slate-50 dark:bg-slate-950/40 rounded-2xl border border-slate-200/80 dark:border-white/5 space-y-1">
-                        <span className="text-[9px] text-slate-400 uppercase font-bold block">Net Exposure Position</span>
-                        <div className="text-xs font-extrabold text-amber-600 dark:text-amber-400 font-mono">{scenario.vendor360.netExposure}</div>
-                        <span className="text-[9.5px] font-mono text-slate-500 font-semibold">{scenario.vendor360.openInvoices.length} Open Voucher(s)</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* ARIA Recommendations Matrix */}
-                  <div className="space-y-3">
-                    <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-widest block font-mono flex items-center gap-1.5">
-                      <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
-                      ARIA Strategic Enterprise Recommendations Matrix
-                    </span>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {scenario.ariaRecommendations.map((rec) => (
-                        <div 
-                          key={rec.id}
-                          className={clsx(
-                            "p-3.5 rounded-2xl border flex items-start gap-3 transition-all",
-                            rec.recommended 
-                              ? "bg-indigo-500/5 dark:bg-indigo-500/10 border-indigo-500/30 shadow-sm" 
-                              : "bg-slate-50 dark:bg-slate-950/30 border-slate-200/70 dark:border-white/5"
-                          )}
-                        >
-                          <div className={clsx(
-                            "w-6 h-6 rounded-lg text-xs font-extrabold font-mono flex items-center justify-center shrink-0 mt-0.5",
-                            rec.recommended 
-                              ? "bg-indigo-600 text-white" 
-                              : "bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
-                          )}>
-                            {rec.id}
-                          </div>
-                          
+                      <div className="p-3.5 bg-slate-900 text-slate-200 rounded-2xl font-mono text-[10px] space-y-1.5 border border-white/5 shadow-inner flex flex-col justify-between">
+                        <span className="text-[9px] text-slate-400 font-extrabold uppercase block tracking-widest">
+                          Raw Crawled Ingestion Logs
+                        </span>
+                        {activeScenarioId === "strait-of-hormuz" ? (
                           <div className="space-y-1">
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs font-bold text-slate-900 dark:text-white font-sans">{rec.title}</span>
-                              {rec.recommended && (
-                                <span className="text-[8px] font-extrabold font-mono uppercase bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 px-1.5 py-0.5 rounded">
-                                  Primary Path
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-[10.5px] text-slate-500 dark:text-slate-400 leading-relaxed font-medium">
-                              {rec.desc}
-                            </p>
+                            <div className="text-red-400">&bull; [SC Logistics] Shipping Lane Strait of Hormuz blocked. Red Flag registered.</div>
+                            <div className="text-slate-300">&bull; [Inventory Audit] Depletion alert at storage Plant DE-10. Material MAT_COB_4019 count critical.</div>
+                            <div className="text-amber-400">&bull; [Procurement Alert] Alternate vendor sources found: VEND_US_8009 (AlloyTech US).</div>
                           </div>
-                        </div>
-                      ))}
+                        ) : (
+                          <div className="space-y-1">
+                            <div className="text-purple-400">&bull; [Treasury Scan] Active intercompany borrowing rates discrepancy found. Net leakage: $235,000/yr.</div>
+                            <div className="text-slate-300">&bull; [G/L Ledger Check] Singapore cash surplus: $8.0M @ 3.5%; US debt liability: -$5.0M @ 8.2%.</div>
+                            <div className="text-emerald-400">&bull; [Boundary Test] Intercompany clearance rules check triggered (ACDOCA/BSEG validation).</div>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="pt-4 border-t border-slate-100 dark:border-white/5 flex justify-between items-center text-[10px] font-mono uppercase tracking-wide text-slate-400">
-                    <span>Vendor 360 & Recommendations Ingested</span>
-                    <button
-                      onClick={() => setActiveStep(2)}
-                      className="px-5 py-2.5 rounded-full bg-slate-900 text-white dark:bg-white dark:text-slate-950 font-extrabold text-[10px] tracking-wider flex items-center gap-1.5 cursor-pointer transition-all hover:opacity-85 shadow"
-                    >
-                      Explore Table Connectome & Reasoning
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </motion.div>
-              )}
+                    {/* Vendor 360 Deep-Dive Commercial Intelligence */}
+                    <div className="space-y-3">
+                      <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-widest block font-mono flex items-center gap-1.5">
+                        <Building2 className="w-3.5 h-3.5 text-indigo-500" />
+                        Commercial Entity 360 Profile & Relationships
+                      </span>
+
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <div className="p-3.5 bg-slate-50 dark:bg-slate-950/40 rounded-2xl border border-slate-200/80 dark:border-white/5 space-y-1">
+                          <span className="text-[9px] text-slate-400 uppercase font-bold block">Entity Name & Location</span>
+                          <div className="text-xs font-extrabold text-slate-900 dark:text-white truncate">{scenario.vendor360.entityName}</div>
+                          <span className="text-[9.5px] font-mono text-indigo-500 font-semibold">{scenario.vendor360.relationshipTier}</span>
+                        </div>
+
+                        <div className="p-3.5 bg-slate-50 dark:bg-slate-950/40 rounded-2xl border border-slate-200/80 dark:border-white/5 space-y-1">
+                          <span className="text-[9px] text-slate-400 uppercase font-bold block">Annual AP Buy Spend</span>
+                          <div className="text-xs font-extrabold text-slate-900 dark:text-white font-mono">{scenario.vendor360.annualBuySpend}</div>
+                          <span className="text-[9.5px] font-sans text-slate-500 truncate block">{scenario.vendor360.buyItems}</span>
+                        </div>
+
+                        <div className="p-3.5 bg-slate-50 dark:bg-slate-950/40 rounded-2xl border border-slate-200/80 dark:border-white/5 space-y-1">
+                          <span className="text-[9px] text-slate-400 uppercase font-bold block flex items-center justify-between">
+                            <span>Reverse Trade / Sell</span>
+                            <span className="text-emerald-500 text-[8px] font-bold">Dual-Role</span>
+                          </span>
+                          <div className="text-xs font-extrabold text-emerald-600 dark:text-emerald-400 font-mono">{scenario.vendor360.annualSellVolume}</div>
+                          <span className="text-[9.5px] font-sans text-slate-500 truncate block">{scenario.vendor360.sellItems}</span>
+                        </div>
+
+                        <div className="p-3.5 bg-slate-50 dark:bg-slate-950/40 rounded-2xl border border-slate-200/80 dark:border-white/5 space-y-1">
+                          <span className="text-[9px] text-slate-400 uppercase font-bold block">Net Exposure Position</span>
+                          <div className="text-xs font-extrabold text-amber-600 dark:text-amber-400 font-mono">{scenario.vendor360.netExposure}</div>
+                          <span className="text-[9.5px] font-mono text-slate-500 font-semibold">{scenario.vendor360.openInvoices.length} Open Voucher(s)</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* ARIA Recommendations Matrix */}
+                    <div className="space-y-3">
+                      <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-widest block font-mono flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
+                        ARIA Strategic Enterprise Recommendations Matrix
+                      </span>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {scenario.ariaRecommendations.map((rec) => (
+                          <div 
+                            key={rec.id}
+                            className={clsx(
+                              "p-3.5 rounded-2xl border flex items-start gap-3 transition-all",
+                              rec.recommended 
+                                ? "bg-indigo-500/5 dark:bg-indigo-500/10 border-indigo-500/30 shadow-sm" 
+                                : "bg-slate-50 dark:bg-slate-950/30 border-slate-200/70 dark:border-white/5"
+                            )}
+                          >
+                            <div className={clsx(
+                              "w-6 h-6 rounded-lg text-xs font-extrabold font-mono flex items-center justify-center shrink-0 mt-0.5",
+                              rec.recommended 
+                                ? "bg-indigo-600 text-white" 
+                                : "bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+                            )}>
+                              {rec.id}
+                            </div>
+                            
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-bold text-slate-900 dark:text-white font-sans">{rec.title}</span>
+                                {rec.recommended && (
+                                  <span className="text-[8px] font-extrabold font-mono uppercase bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 px-1.5 py-0.5 rounded">
+                                    Primary Path
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-[10.5px] text-slate-500 dark:text-slate-400 leading-relaxed font-medium">
+                                {rec.desc}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="pt-4 border-t border-slate-100 dark:border-white/5 flex justify-between items-center text-[10px] font-mono uppercase tracking-wide text-slate-400">
+                      <span>Vendor 360 & Recommendations Ingested</span>
+                      <button
+                        onClick={() => setActiveStep(2)}
+                        className="px-5 py-2.5 rounded-full bg-slate-900 text-white dark:bg-white dark:text-slate-955 font-extrabold text-[10px] tracking-wider flex items-center gap-1.5 cursor-pointer transition-all hover:opacity-85 shadow"
+                      >
+                        Explore Table Connectome & Reasoning
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
 
               {activeStep === 2 && (
                 <motion.div
@@ -1209,8 +1219,8 @@ export default function SimulationSandboxPage() {
               </div>
             </div>
           </div>
-
         </div>
+      )}
 
         {/* Certificate Section for active verification */}
         <AnimatePresence>
