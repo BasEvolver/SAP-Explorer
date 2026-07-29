@@ -3,11 +3,12 @@ import { sapOrgData } from "@/lib/sap-org-structure";
 export interface Node3D {
   id: string;
   label: string;
-  type: "System" | "CompanyCode" | "Plant" | "SalesOrg" | "PurchOrg" | "Customer" | "Vendor" | "Employee" | "Material" | "Voucher" | "Signal" | "Country";
+  type: "System" | "CompanyCode" | "Plant" | "SalesOrg" | "PurchOrg" | "Customer" | "Vendor" | "Employee" | "Material" | "Invoice" | "Signal" | "Country";
   group: string;
   color: string;
   val: number;
   country?: string;
+  parentSystemId?: string; // Links internal data objects to their home system
   scopes?: ("applications" | "tprm" | "finance" | "sales")[];
   sapTable?: string;
   tcode?: string;
@@ -525,7 +526,7 @@ export function generateEnterprise3DGraph(): Graph3DData {
       source: "System: Microsoft Azure AD",
       target: "System: Salesforce CRM",
       type: "AppFlow",
-      label: "➔ SAML 2.0 SSO Claims & Sales Rep SCIM Provisioning",
+      label: "➔ SAML 2.0 SSO Claims & SCIM Provisioning",
       color: "#a855f7",
       scopes: ["applications"]
     },
@@ -533,7 +534,7 @@ export function generateEnterprise3DGraph(): Graph3DData {
       source: "System: Microsoft Azure AD",
       target: "System: Workday HCM",
       type: "AppFlow",
-      label: "➔ SCIM User Life-Cycle Provisioning & MFA Claims",
+      label: "➔ SCIM User Life-Cycle Provisioning & MFA",
       color: "#a855f7",
       scopes: ["applications"]
     },
@@ -541,7 +542,7 @@ export function generateEnterprise3DGraph(): Graph3DData {
       source: "System: Microsoft Azure AD",
       target: "System: ServiceNow ITSM",
       type: "AppFlow",
-      label: "➔ Identity Context & SecOps Auth Tokens",
+      label: "➔ Identity Context & SecOps Tokens",
       color: "#a855f7",
       scopes: ["applications"]
     },
@@ -549,7 +550,7 @@ export function generateEnterprise3DGraph(): Graph3DData {
       source: "System: Microsoft Azure AD",
       target: "System: Snowflake Data Cloud",
       type: "AppFlow",
-      label: "➔ Federated OAuth2 & Row-Level Security Policies",
+      label: "➔ Federated OAuth2 & Row-Level Security",
       color: "#a855f7",
       scopes: ["applications"]
     },
@@ -565,7 +566,7 @@ export function generateEnterprise3DGraph(): Graph3DData {
       source: "System: Microsoft Azure AD",
       target: "System: MuleSoft Integration",
       type: "AppFlow",
-      label: "➔ Anypoint API Client ID & JWT Token Entitlements",
+      label: "➔ Anypoint API Client Credentials",
       color: "#a855f7",
       scopes: ["applications"]
     },
@@ -573,7 +574,7 @@ export function generateEnterprise3DGraph(): Graph3DData {
       source: "System: Microsoft Azure AD",
       target: "System: Siemens PLM",
       type: "AppFlow",
-      label: "➔ SSO Authentication & Engineering Drawings ACL",
+      label: "➔ SSO Auth & Engineering Drawings ACL",
       color: "#a855f7",
       scopes: ["applications"]
     },
@@ -583,7 +584,7 @@ export function generateEnterprise3DGraph(): Graph3DData {
       source: "System: Workday HCM",
       target: "System: Salesforce CRM",
       type: "AppFlow",
-      label: "➔ Sales Incentive Compensation & Territory Quotas",
+      label: "➔ Sales Incentive Compensation & Quotas",
       color: "#14b8a6",
       scopes: ["applications", "sales"]
     },
@@ -591,7 +592,7 @@ export function generateEnterprise3DGraph(): Graph3DData {
       source: "System: Workday HCM",
       target: "System: SAP S/4HANA",
       type: "AppFlow",
-      label: "➔ Payroll Accounting Cost Center Allocations (PA0002)",
+      label: "➔ Payroll Cost Center Allocations (PA0002)",
       color: "#14b8a6",
       scopes: ["applications", "finance"]
     },
@@ -599,7 +600,7 @@ export function generateEnterprise3DGraph(): Graph3DData {
       source: "System: Workday HCM",
       target: "System: ServiceNow ITSM",
       type: "AppFlow",
-      label: "➔ Automated Employee Onboarding Workflows",
+      label: "➔ Employee Onboarding Workflows",
       color: "#14b8a6",
       scopes: ["applications"]
     },
@@ -623,7 +624,7 @@ export function generateEnterprise3DGraph(): Graph3DData {
       source: "System: Workday HCM",
       target: "System: ADP Global Payroll",
       type: "AppFlow",
-      label: "➔ Gross-to-Net Payroll Data File Transfer",
+      label: "➔ Gross-to-Net Payroll File Transfer",
       color: "#14b8a6",
       scopes: ["applications"]
     },
@@ -843,6 +844,7 @@ export function generateEnterprise3DGraph(): Graph3DData {
       color: color,
       val: val,
       country: country,
+      parentSystemId: "System: SAP S/4HANA",
       scopes: n.group === "Finance" ? ["finance"] : n.group === "Sales" ? ["sales"] : ["tprm"],
       sapTable: n.sapTable,
       tcode: n.tcode,
@@ -876,7 +878,7 @@ export function generateEnterprise3DGraph(): Graph3DData {
     });
   });
 
-  // 5. SCENARIO 1 TARGET NODES (SwissOptics Anomaly & Block)
+  // 5. SCENARIO 1 TARGET NODES (SwissOptics Anomaly & Block) - Renamed Voucher to Invoice
   const swissOpticsVendor: Node3D = {
     id: "Vendor: VEND_CH_9002 (SwissOptics)",
     label: "SwissOptics AG (Zurich, CH)",
@@ -885,6 +887,7 @@ export function generateEnterprise3DGraph(): Graph3DData {
     color: "#ef4444",
     val: 28,
     country: "DE",
+    parentSystemId: "System: SAP Ariba Network",
     scopes: ["tprm", "finance"],
     scenario: "swissoptics-tprm",
     sapTable: "LFA1 (Vendor Master)",
@@ -903,6 +906,7 @@ export function generateEnterprise3DGraph(): Graph3DData {
     color: "#f59e0b",
     val: 24,
     country: "DE",
+    parentSystemId: "System: Salesforce CRM",
     scopes: ["sales", "finance"],
     scenario: "swissoptics-tprm",
     sapTable: "KNA1 / Salesforce Account",
@@ -911,18 +915,19 @@ export function generateEnterprise3DGraph(): Graph3DData {
   };
 
   const invoice10002841: Node3D = {
-    id: "Voucher: BSEG-10002841",
+    id: "Invoice: BSEG-10002841",
     label: "Invoice 10002841 ($450,000)",
-    type: "Voucher",
+    type: "Invoice",
     group: "Accounts Payable",
     color: "#ef4444",
     val: 20,
     country: "DE",
+    parentSystemId: "System: SAP S/4HANA",
     scopes: ["tprm", "finance"],
     scenario: "swissoptics-tprm",
     sapTable: "BSEG",
     fields: ["BELNR = 10002841", "DMBTR = $450,000.00", "ZLSPR = A (Payment Block)"],
-    details: "Target invoice voucher locked by ARIA to prevent $450k wire fraud disbursement."
+    details: "Target AP Invoice document locked by ARIA to prevent $450k wire fraud disbursement."
   };
 
   const zeissVendor: Node3D = {
@@ -933,6 +938,7 @@ export function generateEnterprise3DGraph(): Graph3DData {
     color: "#10b981",
     val: 24,
     country: "DE",
+    parentSystemId: "System: SAP Ariba Network",
     scopes: ["tprm"],
     scenario: "swissoptics-tprm",
     sapTable: "LFA1 / Teamcenter QPL",
@@ -942,20 +948,14 @@ export function generateEnterprise3DGraph(): Graph3DData {
   nodes.push(swissOpticsVendor, swissOpticsCustomer, invoice10002841, zeissVendor);
 
   links.push(
-    { source: "System: Dun & Bradstreet", target: "Vendor: VEND_CH_9002 (SwissOptics)", type: "ThreatLink", color: "#ef4444", scenario: "swissoptics-tprm", status: "hazard", scopes: ["tprm", "applications"] },
-    { source: "System: SAP S/4HANA", target: "Vendor: VEND_CH_9002 (SwissOptics)", type: "MasterVendorRecord", color: "#06b6d4", scopes: ["tprm", "finance", "applications"] },
-    { source: "System: SAP Ariba Network", target: "Vendor: VEND_CH_9002 (SwissOptics)", type: "AribaLink", color: "#fbbf24", scopes: ["tprm", "applications"] },
-    { source: "Vendor: VEND_CH_9002 (SwissOptics)", target: "CoCode 1010", type: "ProcurementLink", color: "#ef4444", scenario: "swissoptics-tprm", status: "blocked", scopes: ["tprm", "finance"] },
-    { source: "Vendor: VEND_CH_9002 (SwissOptics)", target: "Voucher: BSEG-10002841", type: "InvoiceLink", color: "#ef4444", scenario: "swissoptics-tprm", status: "blocked", scopes: ["tprm", "finance"] },
+    { source: "System: Dun & Bradstreet", target: "Vendor: VEND_CH_9002 (SwissOptics)", type: "ThreatLink", color: "#ef4444", scenario: "swissoptics-tprm", status: "hazard", scopes: ["tprm"] },
+    { source: "Vendor: VEND_CH_9002 (SwissOptics)", target: "CoCode 1010", type: "ProcurementLink", color: "#ef4444", scenario: "swissoptics-tprm", status: "blocked", scopes: ["tprm"] },
+    { source: "Vendor: VEND_CH_9002 (SwissOptics)", target: "Invoice: BSEG-10002841", type: "InvoiceLink", color: "#ef4444", scenario: "swissoptics-tprm", status: "blocked", scopes: ["tprm", "finance"] },
     { source: "CoCode 1010", target: "Customer: CUST_CH_9002 (SwissOptics)", type: "SalesLink", color: "#f59e0b", scenario: "swissoptics-tprm", status: "netted", scopes: ["sales", "finance"] },
-    { source: "System: Salesforce CRM", target: "Customer: CUST_CH_9002 (SwissOptics)", type: "CRMLink", color: "#ec4899", scopes: ["sales", "applications"] },
-    { source: "System: SAP S/4HANA", target: "Customer: CUST_CH_9002 (SwissOptics)", type: "KNA1Link", color: "#06b6d4", scopes: ["sales", "finance", "applications"] },
-    { source: "Vendor: VEND_CH_8801 (Zeiss)", target: "CoCode 1010", type: "RerouteLink", color: "#10b981", scenario: "swissoptics-tprm", status: "rerouted", scopes: ["tprm"] },
-    { source: "System: SAP S/4HANA", target: "Vendor: VEND_CH_8801 (Zeiss)", type: "MasterVendorRecord", color: "#06b6d4", scopes: ["tprm", "finance", "applications"] },
-    { source: "System: SAP Ariba Network", target: "Vendor: VEND_CH_8801 (Zeiss)", type: "AribaLink", color: "#fbbf24", scopes: ["tprm", "applications"] }
+    { source: "Vendor: VEND_CH_8801 (Zeiss)", target: "CoCode 1010", type: "RerouteLink", color: "#10b981", scenario: "swissoptics-tprm", status: "rerouted", scopes: ["tprm"] }
   );
 
-  // 6. GENERATE EMPLOYEES & PERSONNEL (Workday / SAP HR / Azure AD)
+  // 6. GENERATE EMPLOYEES & PERSONNEL (Workday HCM)
   for (let i = 1; i <= 300; i++) {
     const title = EMPLOYEE_TITLES[i % EMPLOYEE_TITLES.length];
     const country = i < 100 ? "DE" : i < 200 ? "US" : "SG";
@@ -971,38 +971,23 @@ export function generateEnterprise3DGraph(): Graph3DData {
       color: "#14b8a6",
       val: 8,
       country: country,
-      scopes: ["applications", "finance"],
+      parentSystemId: "System: Workday HCM",
+      scopes: ["applications"],
       sapTable: "PA0002",
       details: `Active employee in Company Code ${coCode} holding authorization roles for ERP workflow sign-off.`
     });
 
-    // System Connections: Workday HCM, Azure AD Identity & Company Code
-    links.push(
-      {
-        source: "System: Workday HCM",
-        target: `Employee: ${empId}`,
-        type: "HCMRecord",
-        color: "rgba(20, 184, 166, 0.25)",
-        scopes: ["applications", "finance"]
-      },
-      {
-        source: "System: Microsoft Azure AD",
-        target: `Employee: ${empId}`,
-        type: "IdentityLink",
-        color: "rgba(168, 85, 247, 0.2)",
-        scopes: ["applications"]
-      },
-      {
+    if (i % 2 === 0) {
+      links.push({
         source: `Employee: ${empId}`,
         target: coCode,
         type: "EmploymentLink",
-        color: "rgba(20, 184, 166, 0.2)",
-        scopes: ["applications", "finance"]
-      }
-    );
+        color: "rgba(20, 184, 166, 0.2)"
+      });
+    }
   }
 
-  // 7. GENERATE CUSTOMER ACCOUNTS (Salesforce CRM & SAP S/4HANA KNA1)
+  // 7. GENERATE CUSTOMER ACCOUNTS (Salesforce CRM)
   for (let i = 1; i <= 400; i++) {
     const custName = i < CUSTOMER_NAMES.length ? CUSTOMER_NAMES[i] : `Customer Acct CUST_GLOBAL_${1000 + i}`;
     const code = `CUST_ACC_${1000 + i}`;
@@ -1016,39 +1001,23 @@ export function generateEnterprise3DGraph(): Graph3DData {
       color: "#ec4899",
       val: i < 20 ? 16 : 9,
       country: country,
+      parentSystemId: "System: Salesforce CRM",
       scopes: ["sales", "finance"],
       sapTable: "KNA1 / Salesforce Account",
       annualSpend: `$${((i * 45200) % 6500000 + 150000).toLocaleString()} / yr (AR Contracts)`,
       details: `Strategic commercial satellite or defense contractor.`
     });
 
-    // System Connections: Salesforce CRM & SAP S/4HANA (KNA1 Master Data)
-    links.push(
-      {
-        source: "System: Salesforce CRM",
-        target: `Customer: ${code}`,
-        type: "CRMContract",
-        color: "rgba(236, 72, 153, 0.2)",
-        scopes: ["sales", "applications"]
-      },
-      {
-        source: "System: SAP S/4HANA",
-        target: `Customer: ${code}`,
-        type: "KNA1MasterRecord",
-        color: "rgba(6, 182, 212, 0.2)",
-        scopes: ["sales", "finance", "applications"]
-      }
-    );
+    links.push({
+      source: "System: Salesforce CRM",
+      target: `Customer: ${code}`,
+      type: "CRMContract",
+      color: "rgba(236, 72, 153, 0.15)",
+      scopes: ["sales"]
+    });
   }
 
-  // 8. GENERATE 1,500 REGIONAL TPRM VENDORS (Connected to SAP S/4HANA, TPRM Systems & CoCodes)
-  const tprmSystems = [
-    "System: SAP Ariba Network",
-    "System: Dun & Bradstreet",
-    "System: Coupa Spend",
-    "System: ServiceNow ITSM"
-  ];
-
+  // 8. GENERATE 1,500 REGIONAL TPRM VENDORS (SAP Ariba)
   for (let i = 1; i <= 1500; i++) {
     const prefix = VENDOR_PREFIXES[i % VENDOR_PREFIXES.length];
     const suffix = VENDOR_SUFFIXES[i % VENDOR_SUFFIXES.length];
@@ -1056,7 +1025,6 @@ export function generateEnterprise3DGraph(): Graph3DData {
     const country = REGIONS_MAP[region];
     const code = `VEND_${region}_${2000 + i}`;
     const parentCoCode = country === "DE" ? "CoCode 1010" : country === "US" ? "CoCode 1710" : "CoCode 0001";
-    const tprmSystem = tprmSystems[i % tprmSystems.length];
 
     nodes.push({
       id: `Vendor: ${code}`,
@@ -1066,39 +1034,66 @@ export function generateEnterprise3DGraph(): Graph3DData {
       color: region === "EMEA" ? "#6366f1" : region === "AMER" ? "#06b6d4" : "#a855f7",
       val: (i % 9 === 0) ? 12 : 6,
       country: country,
+      parentSystemId: "System: SAP Ariba Network",
       scopes: ["tprm", "finance"],
       sapTable: "LFA1",
       annualSpend: `$${((i * 18900) % 950000 + 15000).toLocaleString()} / yr`,
       details: `Registered Tier-${(i % 3) + 1} vendor under Purchasing Org PURCH_${region}_10.`
     });
 
-    // 1. Link to SAP S/4HANA (Vendor Master LFA1)
-    links.push({
-      source: "System: SAP S/4HANA",
-      target: `Vendor: ${code}`,
-      type: "MasterVendorRecord",
-      color: "rgba(6, 182, 212, 0.25)",
-      scopes: ["tprm", "finance", "applications"]
-    });
-
-    // 2. Link to TPRM / SCM Risk Systems (Ariba, D&B, Coupa, ServiceNow)
-    links.push({
-      source: tprmSystem,
-      target: `Vendor: ${code}`,
-      type: "TPRMSystemLink",
-      color: "rgba(245, 158, 11, 0.25)",
-      scopes: ["tprm", "applications"]
-    });
-
-    // 3. Link to Company Code
-    links.push({
-      source: `Vendor: ${code}`,
-      target: parentCoCode,
-      type: "VendorLink",
-      color: "rgba(99, 102, 241, 0.15)",
-      scopes: ["tprm", "finance"]
-    });
+    if (i % 3 !== 0) {
+      links.push({
+        source: `Vendor: ${code}`,
+        target: parentCoCode,
+        type: "VendorLink",
+        color: "rgba(255, 255, 255, 0.06)",
+        scopes: ["tprm"]
+      });
+    }
   }
 
   return { nodes, links };
+}
+
+/**
+ * System Sub-Graph Generator:
+ * Generates an isolated sub-graph workspace for a specific system (e.g. Workday, SAP, Salesforce).
+ * Returns the target System node, its internal data objects, direct partner systems, and connecting links.
+ */
+export function generateSystemSubGraph(systemId: string): Graph3DData {
+  const fullGraph = generateEnterprise3DGraph();
+  const targetSystemNode = fullGraph.nodes.find((n) => n.id === systemId);
+  if (!targetSystemNode) return fullGraph;
+
+  // 1. Collect child data objects belonging to this system
+  const childNodes = fullGraph.nodes.filter((n) => n.parentSystemId === systemId);
+
+  // 2. Collect direct links connected to this system
+  const connectedLinks = fullGraph.links.filter((l) => {
+    const sId = typeof l.source === "object" ? (l.source as any).id : l.source;
+    const tId = typeof l.target === "object" ? (l.target as any).id : l.target;
+    return sId === systemId || tId === systemId;
+  });
+
+  // 3. Collect partner system IDs connected by direct links
+  const partnerSystemIds = new Set<string>();
+  connectedLinks.forEach((l) => {
+    const sId = typeof l.source === "object" ? (l.source as any).id : l.source;
+    const tId = typeof l.target === "object" ? (l.target as any).id : l.target;
+    if (sId !== systemId) partnerSystemIds.add(sId);
+    if (tId !== systemId) partnerSystemIds.add(tId);
+  });
+
+  const partnerNodes = fullGraph.nodes.filter((n) => partnerSystemIds.has(n.id));
+
+  // 4. Combine into clean sub-graph
+  const subNodes = [targetSystemNode, ...childNodes, ...partnerNodes];
+  const nodeIds = new Set(subNodes.map((n) => n.id));
+  const subLinks = fullGraph.links.filter((l) => {
+    const sId = typeof l.source === "object" ? (l.source as any).id : l.source;
+    const tId = typeof l.target === "object" ? (l.target as any).id : l.target;
+    return nodeIds.has(sId) && nodeIds.has(tId);
+  });
+
+  return { nodes: subNodes, links: subLinks };
 }

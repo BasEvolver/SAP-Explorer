@@ -8,15 +8,13 @@ import clsx from "clsx";
 import { useTheme } from "next-themes";
 import { 
   generateEnterprise3DGraph, 
+  generateSystemSubGraph,
   Graph3DData, 
   Node3D, 
   Link3D 
 } from "@/lib/manifold/cognitive3DData";
 import { 
   Maximize2, 
-  ZoomIn,
-  ZoomOut,
-  RotateCcw,
   Search, 
   X, 
   Zap, 
@@ -31,7 +29,10 @@ import {
   Globe,
   Layers,
   Sparkles,
-  Loader2
+  Loader2,
+  ArrowLeft,
+  ChevronRight,
+  Network
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -73,6 +74,9 @@ export default function Cognitive3DGraphCanvas({
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoaded, setIsLoaded] = useState(false);
 
+  // Sub-Graph Drilldown State
+  const [activeSubGraphSystem, setActiveSubGraphSystem] = useState<Node3D | null>(null);
+
   // Theme resolution
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
@@ -81,15 +85,21 @@ export default function Cognitive3DGraphCanvas({
   const [viewMode, setViewMode] = useState<ViewPerspective>(initialPerspective);
   const [countryFilter, setCountryFilter] = useState<string>(initialCountry);
 
-  // Generate dataset
+  // Raw Graph Data
   const rawGraphData = useMemo(() => generateEnterprise3DGraph(), []);
 
-  // Filter nodes & links based on viewPerspective & countryFilter
+  // Filtered Graph Data (Level 1 Macro vs Level 2 Sub-Graph)
   const filteredData = useMemo(() => {
+    // LEVEL 2: Dedicated Sub-Graph Workspace for selected system
+    if (activeSubGraphSystem) {
+      return generateSystemSubGraph(activeSubGraphSystem.id);
+    }
+
+    // LEVEL 1: Macro Enterprise Landscape
     let nodes = rawGraphData.nodes;
     let links = rawGraphData.links;
 
-    // Perspective Filter
+    // Macro View: Filter out high-cardinality leaf objects (vendors/employees) when in Applications mode
     if (viewMode === "applications") {
       nodes = nodes.filter((n) => n.type === "System" || n.type === "Signal");
       links = links.filter((l) => l.type === "AppFlow");
@@ -99,7 +109,7 @@ export default function Cognitive3DGraphCanvas({
       nodes = nodes.filter((n) => n.scopes?.includes("tprm") || n.type === "System" || n.type === "Vendor" || n.type === "Signal");
       links = links.filter((l) => l.scopes?.includes("tprm") || l.scenario === "swissoptics-tprm");
     } else if (viewMode === "finance") {
-      nodes = nodes.filter((n) => n.scopes?.includes("finance") || n.type === "System" || n.type === "CompanyCode" || n.type === "Voucher");
+      nodes = nodes.filter((n) => n.scopes?.includes("finance") || n.type === "System" || n.type === "CompanyCode" || n.type === "Invoice");
       links = links.filter((l) => l.scopes?.includes("finance"));
     } else if (viewMode === "sales") {
       nodes = nodes.filter((n) => n.scopes?.includes("sales") || n.type === "Customer" || n.id.includes("Salesforce"));
@@ -119,47 +129,24 @@ export default function Cognitive3DGraphCanvas({
     const nodeIds = new Set(nodes.map((n) => n.id));
     links = links.filter((l) => nodeIds.has(typeof l.source === "object" ? (l.source as any).id : l.source) && nodeIds.has(typeof l.target === "object" ? (l.target as any).id : l.target));
 
-    // Fallback Link Safety Check: Ensure zero un-connected/isolated nodes in any perspective view
-    const connectedNodeIds = new Set<string>();
-    links.forEach((l) => {
-      const srcId = typeof l.source === "object" ? (l.source as any).id : l.source;
-      const tgtId = typeof l.target === "object" ? (l.target as any).id : l.target;
-      connectedNodeIds.add(srcId);
-      connectedNodeIds.add(tgtId);
-    });
-
-    const fallbackSystem = nodes.find((n) => n.id === "System: SAP S/4HANA") || nodes.find((n) => n.type === "System") || nodes[0];
-    if (fallbackSystem) {
-      nodes.forEach((n) => {
-        if (!connectedNodeIds.has(n.id) && n.id !== fallbackSystem.id) {
-          links.push({
-            source: fallbackSystem.id,
-            target: n.id,
-            type: "SystemAutoLink",
-            color: "rgba(99, 102, 241, 0.25)"
-          });
-        }
-      });
-    }
-
     return { nodes, links };
-  }, [rawGraphData, viewMode, countryFilter, scenarioFilter]);
+  }, [rawGraphData, viewMode, countryFilter, scenarioFilter, activeSubGraphSystem]);
 
-  // Configure D3 Force Spacing for Applications View
+  // Configure D3 Force Spacing
   useEffect(() => {
     if (graphRef.current) {
-      if (viewMode === "applications") {
+      if (activeSubGraphSystem || viewMode === "applications") {
         graphRef.current.d3Force("charge")?.strength(-850);
         graphRef.current.d3Force("link")?.distance(260);
       } else {
-        graphRef.current.d3Force("charge")?.strength(-120);
-        graphRef.current.d3Force("link")?.distance(50);
+        graphRef.current.d3Force("charge")?.strength(-150);
+        graphRef.current.d3Force("link")?.distance(60);
       }
       graphRef.current.d3ReheatSimulation();
     }
-  }, [viewMode]);
+  }, [viewMode, activeSubGraphSystem]);
 
-  // Handle Resize & Simulated Loading Timer
+  // Handle Resize & Loading Timer
   useEffect(() => {
     const updateDimensions = () => {
       if (containerRef.current) {
@@ -181,7 +168,7 @@ export default function Cognitive3DGraphCanvas({
     };
   }, []);
 
-  // 3D Camera Controls
+  // 3D Camera Flight Jump
   const flyToNode = (node: Node3D, distance = 140) => {
     if (graphRef.current) {
       const distRatio = 1 + distance / Math.hypot(node.x || 1, node.y || 1, node.z || 1);
@@ -193,45 +180,6 @@ export default function Cognitive3DGraphCanvas({
     }
   };
 
-  const handleZoomIn = () => {
-    if (graphRef.current) {
-      const pos = graphRef.current.cameraPosition();
-      graphRef.current.cameraPosition(
-        { x: pos.x * 0.7, y: pos.y * 0.7, z: pos.z * 0.7 },
-        undefined,
-        400
-      );
-    }
-  };
-
-  const handleZoomOut = () => {
-    if (graphRef.current) {
-      const pos = graphRef.current.cameraPosition();
-      graphRef.current.cameraPosition(
-        { x: pos.x * 1.45, y: pos.y * 1.45, z: pos.z * 1.45 },
-        undefined,
-        400
-      );
-    }
-  };
-
-  const handleBirdseyeView = () => {
-    if (graphRef.current) {
-      setSelectedNode(null);
-      graphRef.current.zoomToFit(1200, 160);
-    }
-  };
-
-  // Automatically start from a Birdseye View whenever switching viewPerspective or countryFilter
-  useEffect(() => {
-    if (!graphRef.current || !isLoaded) return;
-    const timer = setTimeout(() => {
-      setSelectedNode(null);
-      graphRef.current?.zoomToFit(1200, 160);
-    }, 350);
-    return () => clearTimeout(timer);
-  }, [viewMode, countryFilter, isLoaded]);
-
   // Fly to Country node when countryFilter changes
   useEffect(() => {
     if (!graphRef.current || !isLoaded || countryFilter === "ALL") return;
@@ -242,10 +190,18 @@ export default function Cognitive3DGraphCanvas({
     }
   }, [countryFilter, isLoaded, rawGraphData]);
 
+  // Node Click Handler (System Node triggers Sub-Graph Workspace Mode)
   const handleNodeClick = (node: any) => {
     const targetNode = node as Node3D;
     setSelectedNode(targetNode);
-    flyToNode(targetNode);
+
+    if (targetNode.type === "System" && !activeSubGraphSystem) {
+      setActiveSubGraphSystem(targetNode);
+      setTimeout(() => flyToNode(targetNode, 180), 300);
+    } else {
+      flyToNode(targetNode);
+    }
+
     if (onSelectNode) onSelectNode(targetNode);
   };
 
@@ -261,7 +217,7 @@ export default function Cognitive3DGraphCanvas({
       case "Vendor":
       case "Customer":
         return <Database className="w-3.5 h-3.5 text-amber-500" />;
-      case "Voucher":
+      case "Invoice":
         return <FileText className="w-3.5 h-3.5 text-emerald-500" />;
       default:
         return <Info className="w-3.5 h-3.5 text-slate-400" />;
@@ -307,45 +263,67 @@ export default function Cognitive3DGraphCanvas({
         )}
       </AnimatePresence>
 
-      {/* View Perspective & Country Controls Toolbar */}
+      {/* View Perspective & Breadcrumb Controls Toolbar */}
       <div className={clsx(
         "relative z-20 p-3.5 flex flex-wrap items-center justify-between gap-3 backdrop-blur-md border-b transition-colors duration-300",
         isDark ? "bg-slate-950/80 border-white/5" : "bg-white/80 border-slate-200"
       )}>
         
-        {/* View Modes Selector */}
-        <div className="flex flex-wrap items-center gap-1.5">
-          <span className="text-[9px] font-mono uppercase font-bold text-slate-400 flex items-center gap-1 mr-1">
-            <Eye className="w-3.5 h-3.5 text-indigo-500" />
-            Perspective:
-          </span>
+        {/* Breadcrumb Navigator Bar */}
+        <div className="flex items-center gap-2">
+          {activeSubGraphSystem ? (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  setActiveSubGraphSystem(null);
+                  if (graphRef.current) graphRef.current.zoomToFit(1200, 100);
+                }}
+                className="flex items-center gap-1.5 px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[10px] font-mono font-bold cursor-pointer transition-all shadow-sm"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                Return to Macro Topology
+              </button>
+              <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+              <span className="text-[11px] font-mono font-bold text-indigo-400 flex items-center gap-1">
+                <Network className="w-3.5 h-3.5" />
+                {activeSubGraphSystem.label} Sub-Graph Workspace
+              </span>
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-[9px] font-mono uppercase font-bold text-slate-400 flex items-center gap-1 mr-1">
+                <Eye className="w-3.5 h-3.5 text-indigo-500" />
+                Perspective:
+              </span>
 
-          {[
-            { id: "all", label: "Full Constellation" },
-            { id: "applications", label: "Applications Topology" },
-            { id: "country", label: "Country Org Hierarchy" },
-            { id: "tprm", label: "TPRM Scope" },
-            { id: "finance", label: "SAP Finance Scope" },
-            { id: "sales", label: "Salesforce Revenue Scope" }
-          ].map((v) => (
-            <button
-              key={v.id}
-              onClick={() => setViewMode(v.id as ViewPerspective)}
-              className={clsx(
-                "px-3 py-1 rounded-xl text-[10px] font-mono font-bold cursor-pointer transition-all border",
-                viewMode === v.id
-                  ? isDark ? "bg-white text-slate-955 border-white shadow-sm" : "bg-slate-900 text-white border-slate-900 shadow-sm"
-                  : isDark ? "bg-slate-900 border-white/10 text-slate-400 hover:text-white hover:bg-slate-800" : "bg-slate-100 border-slate-200 text-slate-600 hover:bg-slate-200"
-              )}
-            >
-              {v.label}
-            </button>
-          ))}
+              {[
+                { id: "all", label: "Full Constellation" },
+                { id: "applications", label: "Applications Topology" },
+                { id: "country", label: "Country Org Hierarchy" },
+                { id: "tprm", label: "TPRM Scope" },
+                { id: "finance", label: "SAP Finance Scope" },
+                { id: "sales", label: "Salesforce Revenue Scope" }
+              ].map((v) => (
+                <button
+                  key={v.id}
+                  onClick={() => setViewMode(v.id as ViewPerspective)}
+                  className={clsx(
+                    "px-3 py-1 rounded-xl text-[10px] font-mono font-bold cursor-pointer transition-all border",
+                    viewMode === v.id
+                      ? isDark ? "bg-white text-slate-955 border-white shadow-sm" : "bg-slate-900 text-white border-slate-900 shadow-sm"
+                      : isDark ? "bg-slate-900 border-white/10 text-slate-400 hover:text-white hover:bg-slate-800" : "bg-slate-100 border-slate-200 text-slate-600 hover:bg-slate-200"
+                  )}
+                >
+                  {v.label}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Country & Camera Controls */}
+        {/* Country & Search Controls */}
         <div className="flex items-center gap-2">
-          {viewMode !== "applications" && (
+          {!activeSubGraphSystem && viewMode !== "applications" && (
             <div className="flex items-center gap-1 text-[10px] font-mono">
               <Globe className="w-3.5 h-3.5 text-sky-500" />
               <select
@@ -388,75 +366,27 @@ export default function Cognitive3DGraphCanvas({
             />
           </div>
 
-          {/* Dedicated Zoom In, Zoom Out, and Birdseye View Controls */}
-          <div className="flex items-center gap-1 border-l border-slate-200 dark:border-white/10 pl-2">
-            <button
-              onClick={handleZoomIn}
-              className={clsx(
-                "p-1.5 border rounded-xl cursor-pointer transition-colors",
-                isDark ? "bg-slate-900 hover:bg-slate-800 border-white/10 text-slate-300 hover:text-white" : "bg-white hover:bg-slate-100 border-slate-200 text-slate-600"
-              )}
-              title="Zoom In (+)"
-            >
-              <ZoomIn className="w-3.5 h-3.5" />
-            </button>
-
-            <button
-              onClick={handleZoomOut}
-              className={clsx(
-                "p-1.5 border rounded-xl cursor-pointer transition-colors",
-                isDark ? "bg-slate-900 hover:bg-slate-800 border-white/10 text-slate-300 hover:text-white" : "bg-white hover:bg-slate-100 border-slate-200 text-slate-600"
-              )}
-              title="Zoom Out (-)"
-            >
-              <ZoomOut className="w-3.5 h-3.5" />
-            </button>
-
-            <button
-              onClick={handleBirdseyeView}
-              className={clsx(
-                "px-2.5 py-1 border rounded-xl cursor-pointer transition-colors flex items-center gap-1 text-[10px] font-mono font-bold",
-                isDark ? "bg-slate-900 hover:bg-slate-800 border-white/10 text-indigo-400 hover:text-indigo-300" : "bg-white hover:bg-slate-100 border-slate-200 text-indigo-600"
-              )}
-              title="Birdseye View (Reset Camera)"
-            >
-              <Compass className="w-3.5 h-3.5 text-indigo-500" />
-              <span>Birdseye View</span>
-            </button>
-          </div>
+          <button
+            onClick={() => {
+              setActiveSubGraphSystem(null);
+              setViewMode("all");
+              setCountryFilter("ALL");
+              if (graphRef.current) graphRef.current.zoomToFit(1200, 100);
+            }}
+            className={clsx(
+              "p-1.5 border rounded-xl cursor-pointer transition-colors",
+              isDark ? "bg-slate-900 hover:bg-slate-800 border-white/10 text-slate-300 hover:text-white" : "bg-white hover:bg-slate-100 border-slate-200 text-slate-600"
+            )}
+            title="Reset View"
+          >
+            <Maximize2 className="w-3.5 h-3.5" />
+          </button>
         </div>
 
       </div>
 
       {/* Main 3D Canvas Viewport */}
       <div className="relative flex-1 w-full h-full overflow-hidden">
-        {/* Floating Quick Camera Controls Overlay */}
-        <div className="absolute top-4 left-4 z-20 flex items-center gap-1.5 p-1.5 rounded-2xl border backdrop-blur-md shadow-lg transition-colors bg-white/80 dark:bg-slate-950/80 border-slate-200 dark:border-white/10">
-          <button
-            onClick={handleZoomIn}
-            className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-white/10 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
-            title="Zoom In (+)"
-          >
-            <ZoomIn className="w-4 h-4" />
-          </button>
-          <button
-            onClick={handleZoomOut}
-            className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-white/10 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
-            title="Zoom Out (-)"
-          >
-            <ZoomOut className="w-4 h-4" />
-          </button>
-          <div className="w-px h-4 bg-slate-200 dark:bg-white/10 my-auto" />
-          <button
-            onClick={handleBirdseyeView}
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/10 transition-colors cursor-pointer"
-            title="Reset to Birdseye View"
-          >
-            <Compass className="w-4 h-4 text-indigo-500" />
-            <span>Birdseye View</span>
-          </button>
-        </div>
-
         {dimensions.width > 0 && (
           <ForceGraph3D
             ref={graphRef}
@@ -595,8 +525,17 @@ export default function Cognitive3DGraphCanvas({
               </div>
             </div>
 
-            <div className="pt-3 border-t border-slate-200 dark:border-white/10 flex justify-between text-[9px] font-mono text-slate-500">
-              <span>Perspective: {viewMode.toUpperCase()}</span>
+            <div className="pt-3 border-t border-slate-200 dark:border-white/10 flex justify-between items-center text-[9px] font-mono text-slate-500">
+              {selectedNode.type === "System" && !activeSubGraphSystem ? (
+                <button
+                  onClick={() => handleNodeClick(selectedNode)}
+                  className="px-2.5 py-1 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 cursor-pointer"
+                >
+                  Enter System Sub-Graph
+                </button>
+              ) : (
+                <span>Mode: {activeSubGraphSystem ? "SUB-GRAPH WORKSPACE" : viewMode.toUpperCase()}</span>
+              )}
               <button
                 onClick={() => flyToNode(selectedNode)}
                 className="text-indigo-600 dark:text-indigo-400 hover:underline font-bold cursor-pointer"
