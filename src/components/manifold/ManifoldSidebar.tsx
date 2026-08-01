@@ -41,6 +41,11 @@ const sidebarItems: SidebarItem[] = [
     label: "Cognitive Graph", 
     href: "/manifold/graph" 
   },
+  {
+    icon: Zap,
+    label: "Explore",
+    href: "/experiments/blast-radius-poc"
+  },
   { 
     icon: LineChart, 
     label: "Resolution Workspace", 

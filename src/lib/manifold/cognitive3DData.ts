@@ -3,7 +3,7 @@ import { sapOrgData } from "@/lib/sap-org-structure";
 export interface Node3D {
   id: string;
   label: string;
-  type: "System" | "CompanyCode" | "Plant" | "SalesOrg" | "PurchOrg" | "Customer" | "Vendor" | "Employee" | "Material" | "Invoice" | "Signal" | "Country";
+  type: "System" | "CompanyCode" | "Plant" | "SalesOrg" | "PurchOrg" | "Customer" | "Vendor" | "Employee" | "Material" | "Invoice" | "Signal" | "Country" | "MasterData";
   group: string;
   color: string;
   val: number;
@@ -519,6 +519,76 @@ export function generateEnterprise3DGraph(): Graph3DData {
   ];
   nodes.push(...systemNodes);
 
+  // --- NON-SAP ORG STRUCTURE NODES ---
+  const otherOrgNodes: Node3D[] = [
+    // Workday Org
+    { id: "Org: WD Global HR", label: "Global HR", type: "SalesOrg", group: "HR & Talent Mgmt", color: "#14b8a6", val: 18 },
+    { id: "Org: WD US Ops", label: "US Operations (Supervisory)", type: "Plant", group: "HR & Talent Mgmt", color: "#14b8a6", val: 14 },
+    { id: "Org: WD EMEA Ops", label: "EMEA Operations (Supervisory)", type: "Plant", group: "HR & Talent Mgmt", color: "#14b8a6", val: 14 },
+    
+    // Salesforce Org
+    { id: "Org: SF Global Sales", label: "Global Sales", type: "SalesOrg", group: "Revenue & Customer Experience", color: "#2563eb", val: 18 },
+    { id: "Org: SF NA Territory", label: "NA Territory", type: "Plant", group: "Revenue & Customer Experience", color: "#2563eb", val: 14 },
+    { id: "Org: SF EMEA Territory", label: "EMEA Territory", type: "Plant", group: "Revenue & Customer Experience", color: "#2563eb", val: 14 },
+
+    // Coupa/Ariba Org
+    { id: "Org: Global Procurement", label: "Global Procurement", type: "PurchOrg", group: "Procurement & SCM Hub", color: "#fbbf24", val: 18 },
+    { id: "Org: US Purchasing", label: "US Purchasing Unit", type: "Plant", group: "Procurement & SCM Hub", color: "#fbbf24", val: 14 },
+    { id: "Org: EMEA Purchasing", label: "EMEA Purchasing Unit", type: "Plant", group: "Procurement & SCM Hub", color: "#fbbf24", val: 14 },
+  ];
+  nodes.push(...otherOrgNodes);
+
+
+      // --- CORE MASTER DATA SCHEMA OBJECTS ---
+  const masterDataNodes: Node3D[] = [
+    // Workday HCM
+    { id: "MD: Employee", label: "Employee Profile", type: "MasterData", group: "HR & Talent Mgmt", color: "#14b8a6", val: 20 },
+    { id: "MD: Job Profile", label: "Job Profile", type: "MasterData", group: "HR & Talent Mgmt", color: "#14b8a6", val: 12 },
+    { id: "MD: Org Unit", label: "Organizational Unit", type: "MasterData", group: "HR & Talent Mgmt", color: "#14b8a6", val: 15 },
+    
+    // SAP S/4HANA
+    { id: "MD: Cost Center", label: "Cost Center", type: "MasterData", group: "Finance & ERP Kernel", color: "#06b6d4", val: 18 },
+    { id: "MD: Profit Center", label: "Profit Center", type: "MasterData", group: "Finance & ERP Kernel", color: "#06b6d4", val: 18 },
+    { id: "MD: GL Account", label: "G/L Account", type: "MasterData", group: "Finance & ERP Kernel", color: "#06b6d4", val: 20 },
+    { id: "MD: Vendor", label: "Vendor Master", type: "MasterData", group: "Finance & ERP Kernel", color: "#06b6d4", val: 22 },
+    { id: "MD: Customer", label: "Customer Master", type: "MasterData", group: "Finance & ERP Kernel", color: "#06b6d4", val: 22 },
+    { id: "MD: Material", label: "Material Master", type: "MasterData", group: "Finance & ERP Kernel", color: "#06b6d4", val: 25 },
+    { id: "MD: Equipment", label: "Equipment Master", type: "MasterData", group: "Finance & ERP Kernel", color: "#06b6d4", val: 18 },
+    { id: "MD: Func Loc", label: "Functional Location", type: "MasterData", group: "Finance & ERP Kernel", color: "#06b6d4", val: 18 },
+    { id: "MD: Bank Account", label: "Bank Account Master", type: "MasterData", group: "Finance & ERP Kernel", color: "#06b6d4", val: 18 },
+    { id: "MD: Pricing Cond", label: "Pricing Conditions", type: "MasterData", group: "Finance & ERP Kernel", color: "#06b6d4", val: 18 },
+    { id: "MD: Work Center", label: "Work Center", type: "MasterData", group: "Finance & ERP Kernel", color: "#06b6d4", val: 18 },
+    
+    // Salesforce CRM
+    { id: "MD: Account", label: "CRM Account", type: "MasterData", group: "Revenue & Customer Experience", color: "#2563eb", val: 22 },
+    { id: "MD: Opportunity", label: "Opportunity", type: "MasterData", group: "Revenue & Customer Experience", color: "#2563eb", val: 20 },
+    { id: "MD: Contact", label: "Contact", type: "MasterData", group: "Revenue & Customer Experience", color: "#2563eb", val: 15 },
+    { id: "MD: Lead", label: "Lead", type: "MasterData", group: "Revenue & Customer Experience", color: "#2563eb", val: 12 },
+
+    // Siemens PLM
+    { id: "MD: Eng BOM", label: "Engineering BOM", type: "MasterData", group: "Product & Engineering", color: "#4f46e5", val: 20 },
+    { id: "MD: Product Drawing", label: "Product Drawing (CAD)", type: "MasterData", group: "Product & Engineering", color: "#4f46e5", val: 15 },
+
+    // SAP Ariba
+    { id: "MD: Supplier Profile", label: "Supplier Profile", type: "MasterData", group: "Procurement & SCM Hub", color: "#fbbf24", val: 18 },
+    { id: "MD: Sourcing Contract", label: "Sourcing Contract", type: "MasterData", group: "Procurement & SCM Hub", color: "#fbbf24", val: 18 },
+
+    // Coupa Spend
+    { id: "MD: Purchase Req", label: "Purchase Requisition", type: "MasterData", group: "Procurement & SCM Hub", color: "#d97706", val: 15 },
+    { id: "MD: Supplier Catalog", label: "Supplier Catalog", type: "MasterData", group: "Procurement & SCM Hub", color: "#d97706", val: 12 },
+
+    // HighRadius AR
+    { id: "MD: Credit Limit", label: "Credit Limit Profile", type: "MasterData", group: "Treasury & Collections", color: "#0ea5e9", val: 14 },
+
+    // Zendesk Support
+    { id: "MD: Support Ticket", label: "Support Ticket", type: "MasterData", group: "Revenue & Customer Experience", color: "#10b981", val: 10 },
+
+    // Conga CPQ
+    { id: "MD: Price Book", label: "Price Book", type: "MasterData", group: "Revenue & Customer Experience", color: "#1d4ed8", val: 12 },
+    { id: "MD: Quote", label: "Quote", type: "MasterData", group: "Revenue & Customer Experience", color: "#1d4ed8", val: 14 }
+  ];
+  nodes.push(...masterDataNodes);
+
   // 3. EXPLICIT 35 CROSS-SYSTEM DATA FLOW VECTORS (O2C, P2P, H2R, Event Mesh, Entra SSO/SCIM)
   const appFlowLinks: Link3D[] = [
     // --- ENTRA ID FEDERATED IDENTITY & SSO MESH (7 Links) ---
@@ -619,6 +689,14 @@ export function generateEnterprise3DGraph(): Graph3DData {
       label: "➔ Executive Talent Calibration & Leadership Sync",
       color: "#14b8a6",
       scopes: ["applications"]
+    },
+    {
+      source: "System: SAP S/4HANA",
+      target: "System: Workday HCM",
+      type: "AppFlow",
+      label: "➔ Core Financial Cost Centers to HCM",
+      color: "#06b6d4",
+      scopes: ["applications", "finance"]
     },
     {
       source: "System: Workday HCM",
@@ -813,9 +891,321 @@ export function generateEnterprise3DGraph(): Graph3DData {
       label: "➔ Streaming Predictive Risk & Vendor Scores",
       color: "#ff3621",
       scopes: ["applications"]
+    },
+    
+    // --- MISSING SYSTEM LINKS ---
+    {
+      source: "System: SAP GRC",
+      target: "System: SAP S/4HANA",
+      type: "AppFlow",
+      label: "➔ SOD Rules & Compliance Sync",
+      color: "#0e7490",
+      scopes: ["applications", "finance"]
+    },
+    {
+      source: "System: SAP BW/4HANA",
+      target: "System: SAP S/4HANA",
+      type: "AppFlow",
+      label: "➔ BW Extraction & Analytics",
+      color: "#0891b2",
+      scopes: ["applications", "finance"]
+    },
+    {
+      source: "System: SAP BPC",
+      target: "System: SAP S/4HANA",
+      type: "AppFlow",
+      label: "➔ Financial Consolidation & Planning",
+      color: "#0284c7",
+      scopes: ["applications", "finance"]
+    },
+    {
+      source: "System: BlackLine Close",
+      target: "System: SAP S/4HANA",
+      type: "AppFlow",
+      label: "➔ Journal Entries & Account Reconciliations",
+      color: "#059669",
+      scopes: ["applications", "finance"]
+    },
+    {
+      source: "System: Kyriba Treasury",
+      target: "System: SAP S/4HANA",
+      type: "AppFlow",
+      label: "➔ Treasury Sweeps & Bank Statements",
+      color: "#10b981",
+      scopes: ["applications", "finance"]
+    },
+    {
+      source: "System: HighRadius AR",
+      target: "System: SAP S/4HANA",
+      type: "AppFlow",
+      label: "➔ Cash Application & Credit Management",
+      color: "#34d399",
+      scopes: ["applications", "finance"]
+    },
+    {
+      source: "System: Celonis Process Mining",
+      target: "System: SAP S/4HANA",
+      type: "AppFlow",
+      label: "➔ Process Execution Telemetry",
+      color: "#b45309",
+      scopes: ["applications"]
+    },
+    {
+      source: "System: Marketo Automation",
+      target: "System: Salesforce CRM",
+      type: "AppFlow",
+      label: "➔ Marketing Leads & Campaign Sync",
+      color: "#f472b6",
+      scopes: ["applications", "sales"]
+    },
+    {
+      source: "System: Conga CPQ",
+      target: "System: Salesforce CRM",
+      type: "AppFlow",
+      label: "➔ CPQ & Contract Data",
+      color: "#f43f5e",
+      scopes: ["applications", "sales"]
+    },
+    {
+      source: "System: Gainsight CS",
+      target: "System: Salesforce CRM",
+      type: "AppFlow",
+      label: "➔ Customer Health & Renewals",
+      color: "#db2777",
+      scopes: ["applications", "sales"]
+    },
+    {
+      source: "System: Zendesk Support",
+      target: "System: Salesforce CRM",
+      type: "AppFlow",
+      label: "➔ Support Tickets & Case Sync",
+      color: "#e11d48",
+      scopes: ["applications", "sales"]
+    },
+    {
+      source: "System: Okta Identity",
+      target: "System: Salesforce CRM",
+      type: "AppFlow",
+      label: "➔ B2B Client SSO",
+      color: "#c084fc",
+      scopes: ["applications"]
+    },
+    {
+      source: "System: CyberArk PAM",
+      target: "System: SAP S/4HANA",
+      type: "AppFlow",
+      label: "➔ Privileged Access & Root Credentials",
+      color: "#9333ea",
+      scopes: ["applications"]
+    },
+    {
+      source: "System: Palo Alto Prisma",
+      target: "System: SAP S/4HANA",
+      type: "AppFlow",
+      label: "➔ Network Security & API Auditing",
+      color: "#6b21a8",
+      scopes: ["applications"]
+    },
+    {
+      source: "System: SAP BTP",
+      target: "System: SAP S/4HANA",
+      type: "AppFlow",
+      label: "➔ Integration Suite & Extensions",
+      color: "#4338ca",
+      scopes: ["applications"]
+    },
+    {
+      source: "System: Blue Yonder SCM",
+      target: "System: SAP S/4HANA",
+      type: "AppFlow",
+      label: "➔ Supply Chain Planning & Forecasting",
+      color: "#d97706",
+      scopes: ["applications"]
+    },
+    {
+      source: "System: Tableau Analytics",
+      target: "System: Snowflake Data Cloud",
+      type: "AppFlow",
+      label: "➔ Visual Analytics Dashboards",
+      color: "#f43f5e",
+      scopes: ["applications"]
+    },
+    {
+      source: "System: ThoughtSpot Search",
+      target: "System: Snowflake Data Cloud",
+      type: "AppFlow",
+      label: "➔ AI-Driven Search Analytics",
+      color: "#e11d48",
+      scopes: ["applications"]
+    },
+    
+    // --- ADVANCED DATA MESH & ANALYTICS PIPELINES ---
+    {
+      source: "System: Snowflake Data Cloud",
+      target: "System: Salesforce CRM",
+      type: "AppFlow",
+      label: "➔ Reverse ETL & Lead Scoring Sync",
+      color: "#ff3621",
+      scopes: ["applications", "sales"]
+    },
+    {
+      source: "System: Snowflake Data Cloud",
+      target: "System: Workday HCM",
+      type: "AppFlow",
+      label: "➔ HCM Headcount Analytics",
+      color: "#ff3621",
+      scopes: ["applications"]
+    },
+    {
+      source: "System: Snowflake Data Cloud",
+      target: "System: ServiceNow ITSM",
+      type: "AppFlow",
+      label: "➔ IT Ops Telemetry Ingestion",
+      color: "#ff3621",
+      scopes: ["applications"]
+    },
+    {
+      source: "System: MuleSoft Integration",
+      target: "System: Snowflake Data Cloud",
+      type: "AppFlow",
+      label: "➔ Streaming API Data Ingestion",
+      color: "#6366f1",
+      scopes: ["applications"]
+    },
+    {
+      source: "System: MuleSoft Integration",
+      target: "System: Databricks Lakehouse",
+      type: "AppFlow",
+      label: "➔ Bulk Data Lake CDC Streaming",
+      color: "#6366f1",
+      scopes: ["applications"]
+    },
+    {
+      source: "System: Coupa Spend",
+      target: "System: Workday HCM",
+      type: "AppFlow",
+      label: "➔ Employee Cost Center Sync",
+      color: "#d97706",
+      scopes: ["applications"]
+    },
+    {
+      source: "System: Zendesk Support",
+      target: "System: SAP S/4HANA",
+      type: "AppFlow",
+      label: "➔ Sales Order Status Queries",
+      color: "#e11d48",
+      scopes: ["applications", "sales"]
     }
   ];
   links.push(...appFlowLinks);
+
+  // --- NON-SAP ORG TO SYSTEM LINKS ---
+  const otherOrgLinks: Link3D[] = [
+    // Workday
+    { source: "System: Workday HCM", target: "Org: WD Global HR", type: "OrgStructure", label: "➔ Base Org", color: "#6b7280", scopes: ["applications"] },
+    { source: "Org: WD Global HR", target: "Org: WD US Ops", type: "OrgStructure", label: "➔ Sub-Org", color: "#6b7280", scopes: ["applications"] },
+    { source: "Org: WD Global HR", target: "Org: WD EMEA Ops", type: "OrgStructure", label: "➔ Sub-Org", color: "#6b7280", scopes: ["applications"] },
+
+    // Salesforce
+    { source: "System: Salesforce CRM", target: "Org: SF Global Sales", type: "OrgStructure", label: "➔ Base Org", color: "#6b7280", scopes: ["applications"] },
+    { source: "Org: SF Global Sales", target: "Org: SF NA Territory", type: "OrgStructure", label: "➔ Sub-Org", color: "#6b7280", scopes: ["applications"] },
+    { source: "Org: SF Global Sales", target: "Org: SF EMEA Territory", type: "OrgStructure", label: "➔ Sub-Org", color: "#6b7280", scopes: ["applications"] },
+
+    // Procurement
+    { source: "System: Coupa Spend", target: "Org: Global Procurement", type: "OrgStructure", label: "➔ Base Org", color: "#6b7280", scopes: ["applications"] },
+    { source: "System: SAP Ariba Network", target: "Org: Global Procurement", type: "OrgStructure", label: "➔ Base Org", color: "#6b7280", scopes: ["applications"] },
+    { source: "Org: Global Procurement", target: "Org: US Purchasing", type: "OrgStructure", label: "➔ Sub-Org", color: "#6b7280", scopes: ["applications"] },
+    { source: "Org: Global Procurement", target: "Org: EMEA Purchasing", type: "OrgStructure", label: "➔ Sub-Org", color: "#6b7280", scopes: ["applications"] },
+    
+    // Link SAP Client 100 to SAP S/4HANA System
+    { source: "System: SAP S/4HANA", target: "Client 100", type: "OrgStructure", label: "➔ Base Org", color: "#6b7280", scopes: ["applications"] },
+  ];
+  links.push(...otherOrgLinks);
+
+
+  
+  // --- MASTER DATA STRUCTURAL & REPLICATION LINKS ---
+  const mdLinks: Link3D[] = [
+    // Workday HCM
+    { source: "Org: WD Global HR", target: "MD: Org Unit", type: "MasterDataSchema", label: "➔ Owns Schema", color: "rgba(100, 255, 100, 0.4)", scopes: ["applications"] },
+    { source: "Org: WD US Ops", target: "MD: Employee", type: "MasterDataSchema", label: "➔ Owns Schema", color: "rgba(100, 255, 100, 0.4)", scopes: ["applications"] },
+    { source: "Org: WD EMEA Ops", target: "MD: Job Profile", type: "MasterDataSchema", label: "➔ Owns Schema", color: "rgba(100, 255, 100, 0.4)", scopes: ["applications"] },
+    
+    // Employee Replication
+    { source: "MD: Employee", target: "System: SAP S/4HANA", type: "DataReplication", label: "➔ Replicates (Mini-Master)", color: "rgba(255, 165, 0, 0.6)", scopes: ["applications"] },
+    { source: "MD: Employee", target: "System: Salesforce CRM", type: "DataReplication", label: "➔ Replicates", color: "rgba(255, 165, 0, 0.6)", scopes: ["applications"] },
+    { source: "MD: Employee", target: "System: ServiceNow ITSM", type: "DataReplication", label: "➔ Replicates", color: "rgba(255, 165, 0, 0.6)", scopes: ["applications"] },
+
+    // SAP S/4HANA Finance
+    { source: "CoCode 1710", target: "MD: Cost Center", type: "MasterDataSchema", label: "➔ Owns Schema", color: "rgba(100, 255, 100, 0.4)", scopes: ["applications"] },
+    { source: "Controlling Area A000", target: "MD: Profit Center", type: "MasterDataSchema", label: "➔ Owns Schema", color: "rgba(100, 255, 100, 0.4)", scopes: ["applications"] },
+    { source: "CoCode 1010", target: "MD: GL Account", type: "MasterDataSchema", label: "➔ Owns Schema", color: "rgba(100, 255, 100, 0.4)", scopes: ["applications"] },
+    { source: "CoCode 1710", target: "MD: Bank Account", type: "MasterDataSchema", label: "➔ Owns Schema", color: "rgba(100, 255, 100, 0.4)", scopes: ["applications"] },
+    
+    // Cost Center Replication
+    { source: "MD: Cost Center", target: "System: Workday HCM", type: "DataReplication", label: "➔ Replicates", color: "rgba(255, 165, 0, 0.6)", scopes: ["applications"] },
+    { source: "MD: Cost Center", target: "System: Coupa Spend", type: "DataReplication", label: "➔ Replicates", color: "rgba(255, 165, 0, 0.6)", scopes: ["applications"] },
+
+    // SAP S/4HANA Logistics / Materials
+    { source: "Plant 1710", target: "MD: Material", type: "MasterDataSchema", label: "➔ Owns Schema", color: "rgba(100, 255, 100, 0.4)", scopes: ["applications"] },
+    { source: "Plant 1010", target: "MD: Equipment", type: "MasterDataSchema", label: "➔ Owns Schema", color: "rgba(100, 255, 100, 0.4)", scopes: ["applications"] },
+    { source: "Plant 1710", target: "MD: Func Loc", type: "MasterDataSchema", label: "➔ Owns Schema", color: "rgba(100, 255, 100, 0.4)", scopes: ["applications"] },
+    { source: "Plant 1010", target: "MD: Work Center", type: "MasterDataSchema", label: "➔ Owns Schema", color: "rgba(100, 255, 100, 0.4)", scopes: ["applications"] },
+    
+    // Material Replication
+    { source: "MD: Material", target: "System: SAP Ariba Network", type: "DataReplication", label: "➔ Replicates", color: "rgba(255, 165, 0, 0.6)", scopes: ["applications"] },
+    { source: "MD: Material", target: "System: Siemens PLM", type: "DataReplication", label: "➔ Replicates", color: "rgba(255, 165, 0, 0.6)", scopes: ["applications"] },
+    { source: "MD: Material", target: "System: Coupa Spend", type: "DataReplication", label: "➔ Replicates", color: "rgba(255, 165, 0, 0.6)", scopes: ["applications"] },
+    { source: "MD: Material", target: "System: Blue Yonder SCM", type: "DataReplication", label: "➔ Replicates", color: "rgba(255, 165, 0, 0.6)", scopes: ["applications"] },
+
+    // SAP S/4HANA Procurement & Sales
+    { source: "PurchOrg 1710", target: "MD: Vendor", type: "MasterDataSchema", label: "➔ Owns Schema", color: "rgba(100, 255, 100, 0.4)", scopes: ["applications"] },
+    { source: "SalesOrg 1710", target: "MD: Customer", type: "MasterDataSchema", label: "➔ Owns Schema", color: "rgba(100, 255, 100, 0.4)", scopes: ["applications"] },
+    { source: "SalesOrg 1010", target: "MD: Pricing Cond", type: "MasterDataSchema", label: "➔ Owns Schema", color: "rgba(100, 255, 100, 0.4)", scopes: ["applications"] },
+
+    // Vendor / Customer Replication
+    { source: "MD: Vendor", target: "System: SAP Ariba Network", type: "DataReplication", label: "➔ Replicates", color: "rgba(255, 165, 0, 0.6)", scopes: ["applications"] },
+    { source: "MD: Vendor", target: "System: Coupa Spend", type: "DataReplication", label: "➔ Replicates", color: "rgba(255, 165, 0, 0.6)", scopes: ["applications"] },
+    { source: "MD: Customer", target: "System: Salesforce CRM", type: "DataReplication", label: "➔ Replicates", color: "rgba(255, 165, 0, 0.6)", scopes: ["applications"] },
+    { source: "MD: Customer", target: "System: Zendesk Support", type: "DataReplication", label: "➔ Replicates", color: "rgba(255, 165, 0, 0.6)", scopes: ["applications"] },
+    { source: "MD: Customer", target: "System: HighRadius AR", type: "DataReplication", label: "➔ Replicates", color: "rgba(255, 165, 0, 0.6)", scopes: ["applications"] },
+
+    // Salesforce CRM
+    { source: "Org: SF NA Territory", target: "MD: Account", type: "MasterDataSchema", label: "➔ Owns Schema", color: "rgba(100, 255, 100, 0.4)", scopes: ["applications"] },
+    { source: "Org: SF EMEA Territory", target: "MD: Opportunity", type: "MasterDataSchema", label: "➔ Owns Schema", color: "rgba(100, 255, 100, 0.4)", scopes: ["applications"] },
+    { source: "Org: SF NA Territory", target: "MD: Contact", type: "MasterDataSchema", label: "➔ Owns Schema", color: "rgba(100, 255, 100, 0.4)", scopes: ["applications"] },
+    { source: "Org: SF Global Sales", target: "MD: Lead", type: "MasterDataSchema", label: "➔ Owns Schema", color: "rgba(100, 255, 100, 0.4)", scopes: ["applications"] },
+
+    // Account & Contact Replication
+    { source: "MD: Account", target: "System: SAP S/4HANA", type: "DataReplication", label: "➔ Replicates (BP)", color: "rgba(255, 165, 0, 0.6)", scopes: ["applications"] },
+    { source: "MD: Account", target: "System: Zendesk Support", type: "DataReplication", label: "➔ Replicates", color: "rgba(255, 165, 0, 0.6)", scopes: ["applications"] },
+    { source: "MD: Account", target: "System: Marketo Automation", type: "DataReplication", label: "➔ Replicates", color: "rgba(255, 165, 0, 0.6)", scopes: ["applications"] },
+    { source: "MD: Contact", target: "System: Marketo Automation", type: "DataReplication", label: "➔ Replicates", color: "rgba(255, 165, 0, 0.6)", scopes: ["applications"] },
+    { source: "MD: Contact", target: "System: Zendesk Support", type: "DataReplication", label: "➔ Replicates", color: "rgba(255, 165, 0, 0.6)", scopes: ["applications"] },
+
+    // Siemens PLM
+    { source: "System: Siemens PLM", target: "MD: Eng BOM", type: "MasterDataSchema", label: "➔ Owns Schema", color: "rgba(100, 255, 100, 0.4)", scopes: ["applications"] },
+    { source: "System: Siemens PLM", target: "MD: Product Drawing", type: "MasterDataSchema", label: "➔ Owns Schema", color: "rgba(100, 255, 100, 0.4)", scopes: ["applications"] },
+
+    // Procurement
+    { source: "Org: Global Procurement", target: "MD: Supplier Profile", type: "MasterDataSchema", label: "➔ Owns Schema", color: "rgba(100, 255, 100, 0.4)", scopes: ["applications"] },
+    { source: "Org: US Purchasing", target: "MD: Sourcing Contract", type: "MasterDataSchema", label: "➔ Owns Schema", color: "rgba(100, 255, 100, 0.4)", scopes: ["applications"] },
+    { source: "Org: US Purchasing", target: "MD: Purchase Req", type: "MasterDataSchema", label: "➔ Owns Schema", color: "rgba(100, 255, 100, 0.4)", scopes: ["applications"] },
+    { source: "Org: EMEA Purchasing", target: "MD: Supplier Catalog", type: "MasterDataSchema", label: "➔ Owns Schema", color: "rgba(100, 255, 100, 0.4)", scopes: ["applications"] },
+    
+    // Supplier Profile Replication
+    { source: "MD: Supplier Profile", target: "System: SAP S/4HANA", type: "DataReplication", label: "➔ Replicates (Vendor)", color: "rgba(255, 165, 0, 0.6)", scopes: ["applications"] },
+
+    // Treasury & AR
+    { source: "System: HighRadius AR", target: "MD: Credit Limit", type: "MasterDataSchema", label: "➔ Owns Schema", color: "rgba(100, 255, 100, 0.4)", scopes: ["applications"] },
+
+    // Service & CPQ
+    { source: "System: Zendesk Support", target: "MD: Support Ticket", type: "MasterDataSchema", label: "➔ Owns Schema", color: "rgba(100, 255, 100, 0.4)", scopes: ["applications"] },
+    { source: "System: Conga CPQ", target: "MD: Price Book", type: "MasterDataSchema", label: "➔ Owns Schema", color: "rgba(100, 255, 100, 0.4)", scopes: ["applications"] },
+    { source: "System: Conga CPQ", target: "MD: Quote", type: "MasterDataSchema", label: "➔ Owns Schema", color: "rgba(100, 255, 100, 0.4)", scopes: ["applications"] },
+  ];
+  links.push(...mdLinks);
+
 
   // 4. CONVERT SAP CAL ORG STRUCTURE NODES & LINKS
   sapOrgData.nodes.forEach((n) => {
