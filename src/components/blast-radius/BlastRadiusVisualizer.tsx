@@ -299,6 +299,7 @@ export default function BlastRadiusVisualizer() {
         linkWidth={0.2}
         linkCurvature={link => (link as any).__curvature || 0}
         linkCurveRotation={link => (link as any).__curveRotation || 0}
+        // @ts-ignore - react-force-graph-3d types restrict linkOpacity to number, but runtime supports function
         linkOpacity={link => {
           if (searchFocusNodes) {
             const sId = typeof link.source === 'object' ? (link.source as any).id : link.source;
